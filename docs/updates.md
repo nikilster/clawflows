@@ -1,5 +1,9 @@
 # Updates
 
+## Sun, Feb 22
+
+- 🔗 **Fixed rogue workflow creation** — The creating-workflows guide was telling agents to drop workflows straight into `workflows/enabled/` like a banana without a peel. Now it correctly says to use `clawflows create`, which puts them in `custom/` and symlinks them like a civilized minion.
+
 ## Thu, Feb 19
 
 - 🍌 **Generic nudge in create** — The interactive `clawflows create` prompt now gently reminds you to keep it generic — say "the user" not your name, skip the hardcoded locations. Your workflows should work for any banana-loving human, not just you!

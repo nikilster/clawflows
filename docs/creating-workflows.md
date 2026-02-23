@@ -226,15 +226,14 @@ Report what you found.
 
 ## Adding Your Workflow
 
-### To the community
-
-1. Create your workflow folder in `workflows/available/`
-2. Submit a pull request
-
 ### For personal use
 
-1. Create your workflow folder in `workflows/enabled/`
-2. It's gitignored, so it stays local
+Run `clawflows create` (interactive) or `clawflows create --from-json '{...}'` (programmatic). This creates the workflow in `workflows/available/custom/` and auto-enables it with a symlink.
+
+### To the community
+
+1. Create and test your workflow with `clawflows create`
+2. Submit it with `clawflows submit <name>`
 
 ## Optional: Config Files
 
