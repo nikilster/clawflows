@@ -27,17 +27,17 @@ Use your judgment to interpret the schedule. A workflow is "due" if the current 
 
 For each due workflow, check if it already ran at this scheduled time today.
 
-Run files are stored in `system/runs/`:
+Run files are stored in `system/runs/`, keyed by the **scheduled time** (not the current time):
 ```
 system/runs/YYYY-MM-DD/workflow-name/HH:MM
 ```
 
-For example, if `send-morning-briefing` ran at 7:00 AM on Feb 10, 2026:
+**Important:** `HH:MM` is always the **scheduled time** the workflow was due, not the time the scheduler checked. For example, if `send-morning-briefing` is scheduled for 7:00 AM and the scheduler checks at 6:50 AM on Feb 10, 2026, the run file is still:
 ```
 system/runs/2026-02-10/send-morning-briefing/07:00
 ```
 
-If the run file exists for this time slot, skip it.
+If the run file exists for this scheduled time slot, skip it.
 
 ## 5. Run Due Workflows
 
@@ -45,10 +45,10 @@ For each workflow that is due and hasn't run:
 
 1. Read the full `WORKFLOW.md`
 2. Execute it according to its instructions
-3. Create the run file to mark it complete:
+3. Create the run file using the **scheduled time** (not the current time):
    ```bash
    mkdir -p system/runs/YYYY-MM-DD/workflow-name
-   touch system/runs/YYYY-MM-DD/workflow-name/HH:MM
+   touch system/runs/YYYY-MM-DD/workflow-name/HH:MM   # HH:MM = scheduled time
    ```
 
 ## 6. Report
