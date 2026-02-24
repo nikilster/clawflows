@@ -26,6 +26,8 @@ clawflows create --from-json '{
 }'
 ```
 
+This command creates the workflow, **auto-enables it**, and syncs AGENTS.md. You do NOT need to run `clawflows enable` separately. After running this, **re-read your AGENTS.md** to see the new workflow in your enabled list.
+
 #### JSON Fields
 
 | Field | Required | Example |

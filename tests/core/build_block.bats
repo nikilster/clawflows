@@ -34,6 +34,16 @@ teardown() {
     assert_output --partial "first and follow it"
 }
 
+@test "build_block: mentions create auto-enables and warns against manual enable" {
+    run_clawflows sync-agent
+
+    assert_success
+    run cat "$AGENTS_MD"
+    assert_output --partial "auto-enables the workflow"
+    assert_output --partial "do NOT run"
+    assert_output --partial "re-read your AGENTS.md"
+}
+
 # ============================================================================
 # Simple Workflow Guidance
 # ============================================================================

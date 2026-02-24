@@ -1,5 +1,10 @@
 # Updates
 
+## Mon, Feb 24
+
+- 🧠 **Agent knows create auto-enables** — The agent-facing instructions now explicitly say that `clawflows create` auto-enables the workflow and syncs AGENTS.md. No more "let me enable that for you" after creating — the banana was already in the basket! 🍌
+- 🔔 **No more double reminders** — Scheduled workflows were firing twice because the scheduler saved run markers using the current time instead of the scheduled time. Two consecutive 15-min checks would both think the workflow hadn't run yet. Now the marker is always keyed to the scheduled time — one banana per time slot, no duplicates! 🍌
+
 ## Sun, Feb 22
 
 - 🌐 **Live dashboard** — `clawflows dashboard` now starts a local server so you can enable and disable workflows right from your browser — no more copying CLI commands! Click the toggle, watch it flip, done. It's like having a banana-powered control panel 🍌

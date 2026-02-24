@@ -301,3 +301,5 @@ Run `clawflows update` to pull the latest from GitHub. This fetches new workflow
 ## Creating Custom Workflows
 
 When a user wants a custom workflow, **read `~/.openclaw/workspace/clawflows/docs/creating-workflows.md` and follow it.** It walks you through the interactive flow — asking questions, then creating with `clawflows create --from-json`.
+
+**Important:** `clawflows create` auto-enables the workflow and updates AGENTS.md. After creating, **re-read your AGENTS.md** to pick up the new workflow.
