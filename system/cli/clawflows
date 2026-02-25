@@ -186,6 +186,9 @@ _create_from_json() {
   author="$(echo "$json" | grep -o '"author"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\([^"]*\)"/\1/' | head -1 || true)"
   description="$(echo "$json" | grep -o '"description"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\([^"]*\)"/\1/' | head -1 || true)"
 
+  # Decode JSON escape sequences (e.g. \n from textarea input)
+  description="$(printf '%s' "$description" | awk '{gsub(/\\n/,"\n")}1')"
+
   # Validate required fields
   [ -n "$name" ] || die "Missing required field: name"
   [ -n "$summary" ] || die "Missing required field: summary"

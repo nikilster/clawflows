@@ -793,6 +793,7 @@ document.getElementById('createSubmit').addEventListener('click', function() {
           enabled: true, content: description
         });
         render();
+        switchTab('mine');
         // Background sync to pick up any server-side changes
         loadWorkflows();
       } else {
@@ -865,14 +866,18 @@ document.addEventListener('click', function(e) {
   }
 });
 
+function switchTab(key) {
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  var tab = document.querySelector('.tab[data-tab="' + key + '"]');
+  if (tab) tab.classList.add('active');
+  document.getElementById('page-' + key).classList.add('active');
+}
+
 document.querySelector('.tabs-inner').addEventListener('click', function(e) {
   var tab = e.target.closest('.tab');
   if (!tab) return;
-  var key = tab.dataset.tab;
-  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
-  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
-  tab.classList.add('active');
-  document.getElementById('page-' + key).classList.add('active');
+  switchTab(tab.dataset.tab);
 });
 
 document.addEventListener('click', function(e) {
@@ -909,7 +914,7 @@ function openPanel(name) {
   } else {
     cmds += '<button class="cmd enable-cmd" data-action="enable" data-wf="' + esc(w.name) + '">enable</button>';
   }
-  cmds += '<button class="cmd" onclick="copyCmd(\'clawflows edit ' + esc(w.name) + '\')">edit</button>';
+  cmds += '<button class="cmd" onclick="editWorkflow(\'' + esc(w.name) + '\')">edit</button>';
   document.getElementById('pCmds').innerHTML = cmds;
   refreshPanelRuns(name);
   document.getElementById('pBody').innerHTML = renderMd(w.content || '');
@@ -949,6 +954,16 @@ function runWorkflow(name) {
   fetch('/api/run/' + encodeURIComponent(name), { method: 'POST' })
     .then(function(r) { return r.json(); })
     .catch(function() { toast('Failed to start ' + name); });
+}
+function editWorkflow(name) {
+  toast('Opening in editor...');
+  fetch('/api/edit/' + encodeURIComponent(name), { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) loadWorkflows();
+      else toast('Could not open editor');
+    })
+    .catch(function() { toast('Failed to open editor'); });
 }
 function toast(msg) {
   var el = document.getElementById('toast');

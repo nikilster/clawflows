@@ -81,6 +81,19 @@ const server = http.createServer(function (req, res) {
     return;
   }
 
+  // POST /api/edit/<name> — copy to custom if needed, then open in editor
+  var editMatch = req.method === 'POST' && req.url.match(/^\/api\/edit\/([a-zA-Z0-9_-]+)$/);
+  if (editMatch) {
+    var ename = editMatch[1];
+    runCli(['edit', ename], function () {
+      runCli(['open', ename], function (err, out) {
+        res.writeHead(err ? 500 : 200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: !err, message: (out || '').trim() }));
+      });
+    });
+    return;
+  }
+
   // POST /api/run/<name> — fire-and-forget workflow run
   var runMatch = req.method === 'POST' && req.url.match(/^\/api\/run\/([a-zA-Z0-9_-]+)$/);
   if (runMatch) {
