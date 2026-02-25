@@ -109,6 +109,14 @@
     transition: all .15s;
   }
   .tab.active .ct { background: var(--accent-glow); color: var(--accent); }
+  .tab-create-btn {
+    padding: 6px 14px; border-radius: var(--radius-sm);
+    border: 1px solid var(--accent); background: #f7816610;
+    color: var(--accent); font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: var(--sans);
+    transition: all .12s; align-self: center;
+  }
+  .tab-create-btn:hover { background: #f7816620; }
 
   /* ── Content ── */
   .page {
@@ -483,7 +491,8 @@
     <div class="tab active" data-tab="mine">Enabled <span class="ct" id="ct-mine">0</span></div>
     <div class="tab" data-tab="available">Available <span class="ct" id="ct-available">0</span></div>
     <div class="tab" data-tab="runs">Run History <span class="ct" id="ct-runs">0</span></div>
-    <div class="tab" data-tab="share" style="margin-left:auto">Share My Workflows</div>
+    <div class="tab" data-tab="share" style="margin-left:auto">Share</div>
+    <button class="tab-create-btn" onclick="openCreate()">+ Create</button>
   </div>
 </div>
 
