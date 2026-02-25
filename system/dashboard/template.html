@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 <style>
   :root {
     --bg-root: #0a0e14;
@@ -355,9 +356,51 @@
     display: inline-flex; align-items: center; gap: 6px;
   }
   .share-btn:hover { color: var(--text-primary); border-color: var(--text-muted); }
+  .share-btn.dl-btn { border-color: var(--accent); color: var(--accent); background: #f7816610; }
+  .share-btn.dl-btn:hover { background: #f7816620; }
+  .share-btn.native-btn { border-color: var(--blue-border); color: var(--blue); background: var(--blue-bg); }
+  .share-btn.native-btn:hover { background: #58a6ff22; }
   .share-btn.x-btn { border-color: #536471; }
   .share-btn.x-btn:hover { color: #e6edf3; background: #53647118; }
   .share-btn.copy-btn:hover { color: var(--green); border-color: var(--green-border); }
+
+  /* ── Share image card (off-screen render target) ── */
+  .share-img-card {
+    position: fixed; left: -9999px; top: -9999px;
+    width: 600px; padding: 40px;
+    background: linear-gradient(145deg, #0d1117 0%, #111820 50%, #0f1923 100%);
+    font-family: 'DM Sans', -apple-system, sans-serif;
+    color: #d4dee8;
+  }
+  .share-img-logo {
+    font-size: 28px; font-weight: 700; letter-spacing: -0.03em;
+    margin-bottom: 4px;
+  }
+  .share-img-logo .claw { color: #f78166; }
+  .share-img-logo .flows { color: #eef2f6; }
+  .share-img-sub { font-size: 13px; color: #6b8299; margin-bottom: 24px; }
+  .share-img-list { padding: 0; margin: 0; }
+  .share-img-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0; font-size: 14px;
+    border-bottom: 1px solid #1e2d3d;
+  }
+  .share-img-item:last-child { border-bottom: none; }
+  .share-img-emoji { font-size: 20px; width: 32px; text-align: center; flex-shrink: 0; }
+  .share-img-name { font-weight: 600; color: #eef2f6; }
+  .share-img-desc { color: #6b8299; margin-left: 4px; }
+  .share-img-footer {
+    margin-top: 24px; padding-top: 16px;
+    border-top: 1px solid #1e2d3d;
+    font-size: 12px; color: #455568;
+    display: flex; justify-content: space-between;
+  }
+
+  .share-preview { margin-bottom: 20px; }
+  .share-preview img {
+    width: 100%; border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
 
   /* ── Create modal ── */
   .create-overlay {
@@ -694,6 +737,8 @@ function esc(s) {
 }
 
 // ── Share tab ──
+var shareBlob = null;
+
 function renderShareTab() {
   var enabled = [];
   WORKFLOWS.forEach(function(w) { if (w.enabled) enabled.push(w); });
@@ -706,43 +751,92 @@ function renderShareTab() {
     return;
   }
 
-  var lines = enabled.map(function(w) {
-    return (w.emoji || '') + ' ' + w.name + ' \u2014 ' + w.description;
-  });
-  var shareText = 'My ClawFlows setup \uD83D\uDC7E\n\n' + lines.join('\n') + '\n\nhttps://github.com/davehappyminion/clawflows';
-  var tweetText = encodeURIComponent('My ClawFlows setup \uD83D\uDC7E\n\n' + lines.slice(0, 5).join('\n') + (enabled.length > 5 ? '\n+' + (enabled.length - 5) + ' more' : '') + '\n\nhttps://github.com/davehappyminion/clawflows');
+  var tweetText = encodeURIComponent('My ClawFlows setup \uD83D\uDC7E\n\nhttps://github.com/davehappyminion/clawflows');
 
-  var wfListHtml = '';
+  // Build the off-screen image card
+  var imgItems = '';
   enabled.forEach(function(w) {
-    wfListHtml += '<div class="share-wf-item">' +
-      '<span class="share-wf-emoji">' + (w.emoji || '\uD83D\uDCC4') + '</span>' +
-      '<span><span class="share-wf-name">' + esc(w.name) + '</span>' +
-      '<span class="share-wf-sep"> \u2014 </span>' +
-      '<span class="share-wf-desc">' + esc(w.description) + '</span></span>' +
+    imgItems += '<div class="share-img-item">' +
+      '<span class="share-img-emoji">' + (w.emoji || '\uD83D\uDCC4') + '</span>' +
+      '<span><span class="share-img-name">' + esc(w.name) + '</span>' +
+      '<span class="share-img-desc">\u2014 ' + esc(w.description) + '</span></span>' +
       '</div>';
   });
+
+  var nativeBtn = '';
+  if (navigator.share && navigator.canShare) {
+    nativeBtn = '<button class="share-btn native-btn" id="share-native-btn">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>' +
+      'Share</button>';
+  }
 
   el.innerHTML =
     '<div class="share-page">' +
       '<div class="share-page-title">Share My Workflows</div>' +
-      '<div class="share-page-sub">Show off your ClawFlows setup to the world.</div>' +
-      '<div class="share-card">' +
-        '<div class="share-card-header">' + enabled.length + ' workflow' + (enabled.length === 1 ? '' : 's') + ' enabled</div>' +
-        '<div class="share-wf-list">' + wfListHtml + '</div>' +
-      '</div>' +
+      '<div class="share-page-sub">Share your ClawFlows setup as an image.</div>' +
+      '<div class="share-preview" id="share-preview"><div class="loading">Generating image</div></div>' +
       '<div class="share-btns">' +
+        '<button class="share-btn dl-btn" id="share-dl-btn">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
+          'Download Image</button>' +
+        nativeBtn +
         '<a class="share-btn x-btn" href="https://x.com/intent/tweet?text=' + tweetText + '" target="_blank" rel="noopener">' +
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>' +
           'Post on X</a>' +
-        '<button class="share-btn copy-btn" id="share-copy-btn">' +
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>' +
-          'Copy to Clipboard</button>' +
       '</div>' +
     '</div>';
 
-  document.getElementById('share-copy-btn').addEventListener('click', function() {
-    copyCmd(shareText);
+  // Build off-screen render card
+  var card = document.getElementById('share-img-card');
+  if (card) card.remove();
+  card = document.createElement('div');
+  card.id = 'share-img-card';
+  card.className = 'share-img-card';
+  card.innerHTML =
+    '<div class="share-img-logo"><span class="claw">Claw</span><span class="flows">Flows</span></div>' +
+    '<div class="share-img-sub">' + enabled.length + ' workflow' + (enabled.length === 1 ? '' : 's') + ' enabled</div>' +
+    '<div class="share-img-list">' + imgItems + '</div>' +
+    '<div class="share-img-footer"><span>github.com/davehappyminion/clawflows</span></div>';
+  document.body.appendChild(card);
+
+  // Render to canvas
+  if (typeof html2canvas !== 'undefined') {
+    setTimeout(function() {
+      html2canvas(card, { backgroundColor: null, scale: 2 }).then(function(canvas) {
+        canvas.toBlob(function(blob) {
+          shareBlob = blob;
+          var url = URL.createObjectURL(blob);
+          document.getElementById('share-preview').innerHTML =
+            '<img src="' + url + '" alt="ClawFlows share image">';
+        }, 'image/png');
+      });
+    }, 100);
+  } else {
+    document.getElementById('share-preview').innerHTML =
+      '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Image generation unavailable</div>';
+  }
+
+  document.getElementById('share-dl-btn').addEventListener('click', function() {
+    if (!shareBlob) { toast('Image not ready yet'); return; }
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(shareBlob);
+    a.download = 'clawflows-setup.png';
+    a.click();
+    toast('Image downloaded!');
   });
+
+  if (document.getElementById('share-native-btn')) {
+    document.getElementById('share-native-btn').addEventListener('click', function() {
+      if (!shareBlob) { toast('Image not ready yet'); return; }
+      var file = new File([shareBlob], 'clawflows-setup.png', { type: 'image/png' });
+      var shareData = { files: [file], title: 'My ClawFlows Setup', url: 'https://github.com/davehappyminion/clawflows' };
+      if (navigator.canShare(shareData)) {
+        navigator.share(shareData).catch(function() {});
+      } else {
+        toast('Sharing files not supported');
+      }
+    });
+  }
 }
 
 // ── Create workflow ──
