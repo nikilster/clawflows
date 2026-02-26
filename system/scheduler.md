@@ -18,8 +18,17 @@ Skip workflows without a `schedule` field — they're on-demand only.
 
 For each scheduled workflow, determine if it's due now. The schedule field can be:
 - Specific times: `"7am"`, `"9am, 1pm, 5pm"`, `"5:14pm"`
+- Specific times with timezone: `"8:30am EST"`, `"9am PST"`, `"2pm UTC"`
 - Intervals: `"every hour"`, `"every 2 hours"`, `"hourly"`
 - Descriptive: `"morning"`, `"evening"`, `"twice a day"`
+
+**TIMEZONE HANDLING (CRITICAL):**
+- If a schedule includes a timezone (e.g., "8:30am EST"), convert it to UTC before comparing
+- EST = UTC-5, PST = UTC-8, etc.
+- If NO timezone is specified, assume the user's local timezone (EST by default)
+- Always compare times in UTC internally to avoid confusion
+
+**Example:** "8:30am EST" = 13:30 UTC. If current UTC time is 13:30, the workflow is due.
 
 Use your judgment to interpret the schedule. A workflow is "due" if the current time matches or is within 15 minutes of a scheduled time.
 
