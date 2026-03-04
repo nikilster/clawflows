@@ -15,7 +15,7 @@ Automatically pull the latest workflows and notify the user if there's anything 
 Run this command to get the current commit hash before updating:
 
 ```bash
-git -C ~/.openclaw/workspace/clawflows rev-parse HEAD
+git -C ~/clawd/clawflows rev-parse HEAD
 ```
 
 Save this hash — you'll need it to check what changed.
@@ -25,7 +25,7 @@ Save this hash — you'll need it to check what changed.
 Run:
 
 ```bash
-git -C ~/.openclaw/workspace/clawflows pull --ff-only
+git -C ~/clawd/clawflows pull --ff-only
 ```
 
 If this fails (offline or conflicts), stop here and notify the user there was an issue updating.
@@ -35,7 +35,7 @@ If this fails (offline or conflicts), stop here and notify the user there was an
 Compare the changelog before and after the pull:
 
 ```bash
-git -C ~/.openclaw/workspace/clawflows diff <old_hash> HEAD -- docs/updates.md
+git -C ~/clawd/clawflows diff <old_hash> HEAD -- docs/updates.md
 ```
 
 Replace `<old_hash>` with the hash you saved in step 1.
