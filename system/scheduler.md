@@ -45,11 +45,19 @@ For each workflow that is due and hasn't run:
 
 1. Read the full `WORKFLOW.md`
 2. Execute it according to its instructions
-3. Create the run file using the **scheduled time** (not the current time):
+3. Create the run file using the **scheduled time** (not the current time) and write a brief summary (2-5 lines) of what happened:
    ```bash
    mkdir -p system/runs/YYYY-MM-DD/workflow-name
-   touch system/runs/YYYY-MM-DD/workflow-name/HH:MM   # HH:MM = scheduled time
+   cat > system/runs/YYYY-MM-DD/workflow-name/HH:MM << 'EOF'
+   Brief summary of what the workflow did.
+   Include key results, numbers, or actions taken.
+   EOF
    ```
+
+   Good log examples:
+   - "Sent briefing: 65°F, 3 meetings today, 2 priority tasks"
+   - "Triaged 12 emails: archived 8 junk, flagged 2 urgent, 2 need reply"
+   - "No calendar conflicts in next 48 hours. Next meeting: standup at 9am"
 
 ## 6. Report
 

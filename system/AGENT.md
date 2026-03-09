@@ -235,6 +235,15 @@ clawflows update
 # Refresh the workflow list in AGENTS.md after manual changes
 clawflows sync
 
+# Show recent run logs (what happened, results, errors)
+clawflows logs
+
+# Show logs for a specific workflow
+clawflows logs <name>
+
+# Show logs for a workflow on a specific date
+clawflows logs <name> YYYY-MM-DD
+
 # Remove clawflows entirely (symlink, AGENTS.md block, scheduler)
 clawflows uninstall
 
@@ -266,6 +275,9 @@ When the user asks you to run a workflow:
 | "Prep for my next meeting" | Run the `build-meeting-prep` workflow |
 | "Get new workflows" | Run `clawflows update` |
 | "What can you automate?" | Run `clawflows list available` and summarize the categories |
+| "Show me the logs" | Run `clawflows logs` |
+| "What happened when X ran?" | Run `clawflows logs <name>` |
+| "Why did X fail?" | Run `clawflows logs <name>` and check for errors |
 | "Process my downloads" | Run the `process-downloads` workflow |
 | "How's my disk space?" | Run the `check-disk` workflow |
 | "Uninstall clawflows" | Run `clawflows uninstall` (confirm with user first) |

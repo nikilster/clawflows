@@ -69,6 +69,7 @@ cmd_help() {
 
   ▶️  Running
     run <name>           Run a workflow now (invokes your agent)
+    logs [name] [date]   Show recent run logs
 
   🔧 Managing
     enable <name>        Turn on a workflow (symlinks to enabled/)
@@ -711,6 +712,7 @@ _build_block() {
   lines+=("- \`clawflows validate <name>\` — check a workflow has required fields")
   lines+=("- \`clawflows submit <name>\` — submit a custom workflow for community review")
   lines+=("- \`clawflows share <name>\` — generate shareable text for a workflow (emoji, name, description, install command)")
+  lines+=("- \`clawflows logs [name] [date]\` — show recent run logs with output (what happened, results, errors)")
   lines+=("- \`clawflows backup\` — back up custom workflows and enabled list")
   lines+=("- \`clawflows restore\` — restore from a backup")
   lines+=("- \`clawflows update\` — pull the latest community workflows. **After running, re-read your AGENTS.md** to pick up new instructions")
@@ -1173,13 +1175,21 @@ cmd_run() {
 
   [ -f "$wf_file" ] || die "WORKFLOW.md not found at $wf_file"
 
+  # Set up run log file
+  local today time_now run_dir run_file
+  today="$(date +%Y-%m-%d)"
+  time_now="$(date +%H:%M)"
+  run_dir="$CLAWFLOWS_DIR/system/runs/$today/$name"
+  run_file="$run_dir/$time_now"
+  mkdir -p "$run_dir"
+
   # Run via openclaw if available
   local oc
   oc="$(_find_openclaw)"
   if [ -n "$oc" ]; then
     echo "Running $name..."
     echo ""
-    "$oc" agent --agent main -m "Run the $name workflow by following $wf_file"
+    "$oc" agent --agent main -m "Run the $name workflow by following $wf_file" | tee "$run_file"
   else
     echo ""
     echo "  ✓ Workflow ready: $name"
@@ -1188,6 +1198,106 @@ cmd_run() {
     echo ""
     echo "    Run $name"
     echo ""
+    touch "$run_file"
+  fi
+}
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+
+cmd_logs() {
+  local filter_name="${1:-}"
+  local filter_date="${2:-}"
+  local runs_dir="$CLAWFLOWS_DIR/system/runs"
+
+  if [ ! -d "$runs_dir" ]; then
+    echo "No runs yet."
+    return
+  fi
+
+  local count=0
+  local max=20
+
+  # Walk date directories newest-first
+  for date_dir in $(ls -1r "$runs_dir" 2>/dev/null); do
+    case "$date_dir" in
+      [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;;
+      *) continue ;;
+    esac
+    [ -d "$runs_dir/$date_dir" ] || continue
+
+    # Filter by date if specified
+    if [ -n "$filter_date" ] && [ "$date_dir" != "$filter_date" ]; then
+      continue
+    fi
+
+    # Collect time entries for this date, then sort newest-first
+    local entries=""
+    for wf_dir in "$runs_dir/$date_dir"/*/; do
+      [ -d "$wf_dir" ] || continue
+      local wf_name
+      wf_name="$(basename "$wf_dir")"
+
+      # Filter by name if specified
+      if [ -n "$filter_name" ] && [ "$wf_name" != "$filter_name" ]; then
+        continue
+      fi
+
+      for time_file in "$wf_dir"*; do
+        [ -e "$time_file" ] || continue
+        local time_name
+        time_name="$(basename "$time_file")"
+        entries="${entries}${time_name}|${wf_name}|${time_file}
+"
+      done
+    done
+
+    # Sort entries by time descending
+    local sorted
+    sorted="$(echo "$entries" | sort -r)"
+
+    local IFS_OLD="$IFS"
+    IFS=$'\n'
+    for entry in $sorted; do
+      [ -n "$entry" ] || continue
+      local t_name w_name t_file
+      t_name="$(echo "$entry" | cut -d'|' -f1)"
+      w_name="$(echo "$entry" | cut -d'|' -f2)"
+      t_file="$(echo "$entry" | cut -d'|' -f3)"
+
+      # Look up emoji
+      local emoji=""
+      local source_dir
+      source_dir="$(_find_workflow "$w_name" 2>/dev/null || true)"
+      if [ -n "$source_dir" ] && [ -f "$source_dir/WORKFLOW.md" ]; then
+        emoji="$(get_field "$source_dir/WORKFLOW.md" emoji)"
+      fi
+      emoji="${emoji:-📄}"
+
+      echo "─── $date_dir $t_name $emoji $w_name ───"
+
+      # Show log content or placeholder
+      if [ -s "$t_file" ]; then
+        cat "$t_file"
+      else
+        echo "(no log recorded)"
+      fi
+      echo ""
+
+      count=$((count + 1))
+      if [ "$count" -ge "$max" ]; then
+        IFS="$IFS_OLD"
+        return
+      fi
+    done
+    IFS="$IFS_OLD"
+  done
+
+  if [ "$count" -eq 0 ]; then
+    if [ -n "$filter_name" ]; then
+      echo "No runs found for '$filter_name'."
+    else
+      echo "No runs yet."
+    fi
   fi
 }
 
@@ -1328,12 +1438,20 @@ _build_runs_json() {
         local time_name
         time_name="$(basename "$time_file")"
 
+        # Read log content if file is non-empty
+        local log_content=""
+        if [ -s "$time_file" ]; then
+          log_content="$(cat "$time_file")"
+          # Escape for JSON: backslashes, quotes, newlines, tabs
+          log_content="$(printf '%s' "$log_content" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g' | awk '{printf "%s\\n", $0}' | sed 's/\\n$//')"
+        fi
+
         if $first; then
           first=false
         else
           printf ','
         fi
-        printf '{"date":"%s","workflow":"%s","time":"%s"}' "$date_dir" "$wf_name" "$time_name"
+        printf '{"date":"%s","workflow":"%s","time":"%s","log":"%s"}' "$date_dir" "$wf_name" "$time_name" "$log_content"
       done
     done
   done
@@ -1474,6 +1592,7 @@ case "$1" in
   list)      cmd_list "${2:-all}" ;;
   create)    cmd_create "${2:-}" "${3:-}" ;;
   run)       [ $# -ge 2 ] || die "usage: clawflows run <name>"; cmd_run "$2" ;;
+  logs)      cmd_logs "${2:-}" "${3:-}" ;;
   enable)    [ $# -ge 2 ] || die "usage: clawflows enable <name>"; cmd_enable "$2" ;;
   disable)   [ $# -ge 2 ] || die "usage: clawflows disable <name>"; cmd_disable "$2" ;;
   edit)      [ $# -ge 2 ] || die "usage: clawflows edit <name>"; cmd_edit "$2" ;;

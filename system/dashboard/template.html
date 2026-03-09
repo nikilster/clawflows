@@ -492,17 +492,22 @@
     border-top: 1px solid var(--border-subtle); padding-top: 18px;
   }
   .run-item {
-    display: flex; align-items: center; gap: 12px;
+    display: flex; align-items: flex-start; gap: 12px;
     padding: 10px 16px; border-radius: var(--radius-sm);
-    cursor: pointer; transition: background .12s;
+    cursor: pointer; transition: background .12s; flex-wrap: wrap;
   }
   .run-item:hover { background: var(--bg-hover); }
   .run-time {
     font-family: var(--mono); font-size: 13px; font-weight: 500;
-    color: var(--text-muted); min-width: 50px;
+    color: var(--text-muted); min-width: 50px; padding-top: 2px;
   }
   .run-emoji { font-size: 18px; width: 24px; text-align: center; flex-shrink: 0; }
   .run-name { font-size: 14px; color: var(--text-primary); font-weight: 500; }
+  .run-log-preview {
+    width: 100%; padding-left: 62px; margin-top: 2px;
+    font-size: 12px; color: var(--text-muted); font-family: var(--mono);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
   .panel-runs-section {
     padding: 14px 24px; border-bottom: 1px solid var(--border);
   }
@@ -511,12 +516,20 @@
     color: var(--text-muted); margin-bottom: 8px;
   }
   .panel-run-entry {
-    display: flex; align-items: center; gap: 10px;
-    padding: 6px 0; font-size: 13px;
+    padding: 6px 0; font-size: 13px; cursor: pointer;
   }
   .panel-run-entry + .panel-run-entry { border-top: 1px solid var(--border-subtle); }
+  .panel-run-meta {
+    display: flex; align-items: center; gap: 10px;
+  }
   .panel-run-date { color: var(--text-muted); min-width: 90px; }
   .panel-run-time { font-family: var(--mono); color: var(--text-secondary); font-weight: 500; }
+  .panel-run-log {
+    margin-top: 6px; padding: 8px 10px; background: var(--bg-hover); border-radius: var(--radius-sm);
+    font-size: 12px; color: var(--text-secondary); font-family: var(--mono);
+    white-space: pre-wrap; word-break: break-word; display: none;
+  }
+  .panel-run-entry.expanded .panel-run-log { display: block; }
   .panel-runs-more { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
 
   /* ── Single workflow share modal ── */
@@ -1216,10 +1229,12 @@ function renderRuns() {
       var run = groups[g].items[j];
       var wf = findWorkflow(run.workflow);
       var emoji = wf ? wf.emoji : '';
+      var logPreview = run.log ? run.log.split('\n')[0] : '';
       html += '<div class="run-item" data-run-wf="' + esc(run.workflow) + '">' +
         '<span class="run-time">' + esc(run.time) + '</span>' +
         '<span class="run-emoji">' + (emoji || '\uD83D\uDCC4') + '</span>' +
         '<span class="run-name">' + esc(run.workflow) + '</span>' +
+        (logPreview ? '<span class="run-log-preview">' + esc(logPreview) + '</span>' : '') +
         '</div>';
     }
     html += '</div>';
@@ -1263,9 +1278,13 @@ function refreshPanelRuns(name) {
   var html = '<div class="panel-runs-section"><div class="panel-runs-header">Recent Runs</div>';
   var show = Math.min(wfRuns.length, 5);
   for (var j = 0; j < show; j++) {
-    html += '<div class="panel-run-entry">' +
+    var logText = wfRuns[j].log || '';
+    html += '<div class="panel-run-entry" onclick="this.classList.toggle(\'expanded\')">' +
+      '<div class="panel-run-meta">' +
       '<span class="panel-run-date">' + formatDateLabel(wfRuns[j].date) + '</span>' +
       '<span class="panel-run-time">' + esc(wfRuns[j].time) + '</span>' +
+      '</div>' +
+      (logText ? '<div class="panel-run-log">' + esc(logText) + '</div>' : '') +
       '</div>';
   }
   if (wfRuns.length > 5) {

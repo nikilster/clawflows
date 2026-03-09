@@ -374,11 +374,15 @@ EOF
 # ============================================================================
 
 # create_test_run creates a run marker file
-# Usage: create_test_run <workflow-name> <date> <time>
+# Usage: create_test_run <workflow-name> <date> <time> [log-content]
 create_test_run() {
-    local name="$1" date="$2" time="$3"
+    local name="$1" date="$2" time="$3" log="${4:-}"
     mkdir -p "${CLAWFLOWS_DIR}/system/runs/${date}/${name}"
-    touch "${CLAWFLOWS_DIR}/system/runs/${date}/${name}/${time}"
+    if [ -n "$log" ]; then
+        printf '%s' "$log" > "${CLAWFLOWS_DIR}/system/runs/${date}/${name}/${time}"
+    else
+        touch "${CLAWFLOWS_DIR}/system/runs/${date}/${name}/${time}"
+    fi
 }
 
 # ============================================================================
