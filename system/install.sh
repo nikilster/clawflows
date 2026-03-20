@@ -106,6 +106,7 @@ fi
 # ── 2. Create directories ───────────────────────────────────────────────────
 
 mkdir -p "$INSTALL_DIR/workflows/enabled"
+mkdir -p "$INSTALL_DIR/workflows/available/custom"
 mkdir -p "$INSTALL_DIR/system/runs"
 
 # ── 3. Symlink the CLI ──────────────────────────────────────────────────────
@@ -317,9 +318,12 @@ printf "  ${GREEN}${BOLD}Done!${RESET} ${BOLD}$workflow_count workflows${RESET} 
 echo ""
 
 if $NEEDS_PATH; then
-  printf "  ${BOLD}To get started, run:${RESET}\n"
+  printf "  ${BOLD}To get started, open a new terminal tab (⌘T) or run:${RESET}\n"
   echo ""
-  printf "    ${YELLOW}${BOLD}export PATH=\"%s:\$PATH\"${RESET}        Set up your terminal\n" "$BIN_DIR"
+  printf "    ${YELLOW}${BOLD}export PATH=\"%s:\$PATH\"${RESET}\n" "$BIN_DIR"
+  echo ""
+  printf "  ${BOLD}Then:${RESET}\n"
+  echo ""
   printf "    ${CYAN}clawflows list${RESET}                     Browse all workflows\n"
 else
   printf "  ${BOLD}Next steps:${RESET}\n"
