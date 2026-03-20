@@ -34,15 +34,13 @@ curl -fsSL https://raw.githubusercontent.com/nikilster/clawflows/main/system/ins
   | bash
 ```
 
-### Option 2: Let your agent do it
+### Option 2: Let your OpenClaw do it
 
-Send this message to your OpenClaw agent:
+Send this to your agent:
 
 ```
 Install https://raw.githubusercontent.com/nikilster/clawflows/main/system/AGENT.md
 ```
-
-Your agent will install everything and ask which workflows you want to enable.
 
 <br>
 
