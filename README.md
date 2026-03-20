@@ -4,16 +4,8 @@
   <img src="docs/header.png" alt="ClawFlows" width="100%" />
 </p>
 
-<p align="center">
-  <strong>A powerful workflow system for OpenClaw.</strong><br/>
-  <sub>101 prebuilt workflows. Enable in 1 click. Schedule with plain English.</sub>
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/workflows-101-blue" />
-  <img src="https://img.shields.io/badge/license-MIT-green" />
-  <img src="https://img.shields.io/github/stars/nikilster/clawflows" />
-</p>
+<h2 align="center">A powerful workflow system for OpenClaw.</h2>
+<h3 align="center">101 prebuilt workflows. Enable in 1 click. Schedule with plain English.</h3>
 
 Some examples:
 - 📧 **Process my email** (9am, 1pm, 5pm) — Junk unsubscribed, noise archived, important stuff summarized. Your inbox, handled.
