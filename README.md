@@ -5,6 +5,7 @@
 </p>
 
 **ClawFlows** is a powerful workflow system for OpenClaw.
+<br/>
 101 prebuilt workflows you can enable in 1 click
 
 Some examples
@@ -14,8 +15,7 @@ Some examples
 - 🎯 **Prep for my meeting** (every 30 min) — Attendees researched, history pulled, talking points written. Ready before you are.
 - 🔨 **Build something while I sleep** (midnight) — Picks an idea, builds it overnight, hands you a finished project in the morning.
 
-<br>
-
+<br/>
 
 Benefits
 - ✏️ **Easily Create Workflows** Plain text, easy to create, easy to read, easy to share.
@@ -23,6 +23,7 @@ Benefits
 - 🔄 **Versioned & Reusable Workflows** Easily modify, save, and rollback your workflows
 - 🌍 **Community Workflows** 100+ prebuilt workflows. Easily build & share workflows with your friends!
 
+<br/>
 
 ## 🚀 Get Started In 10 Seconds
 
