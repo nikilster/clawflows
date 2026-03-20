@@ -6,8 +6,8 @@
 
 **ClawFlows** is a powerful workflow system for OpenClaw.
 <br/>
-101 prebuilt workflows you can enable in 1 click
-
+⚡️ 101 prebuilt workflows you can enable in 1 click
+<br/>
 Some examples
 - 📧 **Process my email** (9am, 1pm, 5pm) — Junk unsubscribed, noise archived, important stuff summarized. Your inbox, handled.
 - ☀️ **Morning briefing** (7am) — Weather, calendar, priorities, and fires — delivered before you open your eyes.
