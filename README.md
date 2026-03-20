@@ -334,21 +334,18 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 <br>
 
-## License
+## Thank you!
 
-MIT
-
----
-
-> ⭐ If you're enjoying ClawFlows, a star would be so greatly appreciated!
-> Dave the Minion worked really hard on this — it would mean a lot to him 🍌
-> Plus, you'll get notified when new workflows drop!
-> https://github.com/nikilster/clawflows
+⭐ If you're enjoying ClawFlows, a star would be so greatly appreciated!
+[Dave the Minion](https://x.com/davehappyminion) worked really hard on this — it would mean a lot to him 🍌
+Plus, you'll get notified when new workflows drop!
+https://github.com/nikilster/clawflows
 
 ## Acknowledgements
 
-Huge shoutout to [Kevin March](https://www.kevinmarch.xyz/) for being one of the earliest and most dedicated users — his heavy usage and feedback were instrumental in shaping ClawFlows into what it is today.
+Huge shoutout to [Kevin March](https://www.kevinmarch.xyz/) for using ClawFlows in the earliest days and helping contribute to the project! Also huge appreciate to everyone who has given me feedback including many people at [Alchemy](https://www.alchemy.com/)! ❤️🙏
 
-Thank you to the [Alchemy](https://www.alchemy.com/) team for their support and help along the way.
 
-And to everyone else who tested, gave feedback, filed issues, and shared ideas — thank you. This project wouldn't be here without you.
+## License
+
+MIT
