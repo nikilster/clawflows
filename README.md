@@ -344,3 +344,11 @@ MIT
 > Dave the Minion worked really hard on this — it would mean a lot to him 🍌
 > Plus, you'll get notified when new workflows drop!
 > https://github.com/nikilster/clawflows
+
+## Acknowledgements
+
+Huge shoutout to [Kevin March](https://www.kevinmarch.xyz/) for being one of the earliest and most dedicated users — his heavy usage and feedback were instrumental in shaping ClawFlows into what it is today.
+
+Thank you to the [Alchemy](https://www.alchemy.com/) team for their support and help along the way.
+
+And to everyone else who tested, gave feedback, filed issues, and shared ideas — thank you. This project wouldn't be here without you.
