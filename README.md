@@ -4,7 +4,7 @@
   <img src="docs/header.png" alt="ClawFlows" width="100%" />
 </p>
 
-### ClawFlows is a powerful workflow system for OpenClaw.
+**ClawFlows** is a powerful workflow system for OpenClaw
 <br/>
 101 prebuilt workflows you can enable in 1 click
 <br/><br/>
