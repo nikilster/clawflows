@@ -30,7 +30,6 @@ Reply guidelines:
 - Keep it short and natural
 - Be supportive and generic
 - Do not mention private details
-- Do not mention JPEG, clients, strategy, revenue, internal relationships, or any non-public context unless the user explicitly includes that exact text in the reply they want posted
 - If the post already appears liked/reposted/replied from this account, do not duplicate the action; report it as already done
 
 ## 4. Verify the result
