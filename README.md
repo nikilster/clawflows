@@ -7,7 +7,7 @@
   <img src="docs/header.png" alt="ClawFlows" width="100%" />
 </p>
 
-Give your [OpenClaw](https://github.com/openclaw/openclaw) agent ⚡️ superpowers in 10 seconds. 
+ClawFlows is a workflow system for OpenClaw with 100+ prebuilt community workflows you can enable in 1 click.
 
 Some examples:
 - 📧 **Process my email** — Junk unsubscribed, noise archived, important stuff summarized. Your inbox, handled.
