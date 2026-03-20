@@ -7,7 +7,7 @@
 <h2 align="center">Powerful workflow system for OpenClaw</h2>
 <h3 align="center">101 prebuilt workflows you can enable in 1 click</h3>
 
-Some examples:
+### Some Examples
 - 📧 **Process my email** (9am, 1pm, 5pm) — Junk unsubscribed, noise archived, important stuff summarized. Your inbox, handled.
 - ☀️ **Morning briefing** (7am) — Weather, calendar, priorities, and fires — delivered before you open your eyes.
 - 🛏️ **Sleep mode** (10pm) — Every light off, music stopped, thermostat down, bedroom fan on. One command. Five systems. Done.
