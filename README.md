@@ -37,8 +37,6 @@ curl -fsSL https://raw.githubusercontent.com/nikilster/clawflows/main/system/ins
   | bash
 ```
 
-Then enable workflows with `clawflows enable <name>`.
-
 ### Option 2: Let your agent do it
 
 Send this message to your OpenClaw agent:
