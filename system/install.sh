@@ -127,23 +127,36 @@ case ":${PATH}:" in
 esac
 
 if ! $path_ok; then
-  rc_file=""
-  case "${SHELL:-}" in
-    */zsh)  rc_file="$HOME/.zshrc" ;;
-    */bash) rc_file="$HOME/.bashrc" ;;
-  esac
+  # Check all common rc files before adding
+  already_in_rc=false
+  for check_file in "$HOME/.zshrc" "$HOME/.zprofile" "$HOME/.bashrc" "$HOME/.bash_profile"; do
+    if grep -qF "$BIN_DIR" "$check_file" 2>/dev/null; then
+      already_in_rc=true
+      break
+    fi
+  done
 
-  if [ -n "$rc_file" ]; then
-    if ! grep -qF "$BIN_DIR" "$rc_file" 2>/dev/null; then
+  if $already_in_rc; then
+    ok "PATH already configured (restart your terminal to pick it up)"
+  else
+    rc_file=""
+    case "${SHELL:-}" in
+      */zsh)  rc_file="$HOME/.zshrc" ;;
+      */bash) rc_file="$HOME/.bashrc" ;;
+    esac
+
+    if [ -n "$rc_file" ]; then
       printf '\n# Added by ClawFlows installer\nexport PATH="%s:$PATH"\n' "$BIN_DIR" >> "$rc_file"
       ok "Added to PATH in $rc_file"
-      warn "Open a new terminal or run: source $rc_file"
     else
-      ok "PATH already configured"
+      warn "Add $BIN_DIR to your PATH manually"
     fi
-  else
-    warn "Add $BIN_DIR to your PATH manually"
   fi
+
+  echo ""
+  printf "  ${YELLOW}${BOLD}  ⚠️  Run this now so clawflows works in this terminal:${RESET}\n"
+  printf "  ${BOLD}     export PATH=\"%s:\$PATH\"${RESET}\n" "$BIN_DIR"
+  echo ""
 else
   ok "PATH already configured"
 fi
@@ -237,7 +250,7 @@ if ! $RESTORED_BACKUP && [ -t 1 ]; then
   printf "  We strongly recommend enabling these 4 workflows to start:\n"
   echo ""
   printf "    ✨ ${BOLD}send-morning-inspiration${RESET}   Uplifting quote to start your day\n"
-  printf "    ☀️  ${BOLD}send-morning-briefing${RESET}     Weather, calendar, priorities at 7am\n"
+  printf "    ☀️ ${BOLD}send-morning-briefing${RESET}     Weather, calendar, priorities at 7am\n"
   printf "    📧 ${BOLD}process-email${RESET}              Inbox triage — unsubscribe junk, surface important\n"
   printf "    📅 ${BOLD}check-calendar${RESET}             48-hour radar with conflict detection\n"
   echo ""
@@ -287,7 +300,7 @@ fi
 
 workflow_count=0
 if [ -d "$INSTALL_DIR/workflows/available" ]; then
-  workflow_count=$(ls -d "$INSTALL_DIR/workflows/available"/*/ 2>/dev/null | wc -l | tr -d ' ')
+  workflow_count=$(ls -d "$INSTALL_DIR/workflows/available"/community/*/ "$INSTALL_DIR/workflows/available"/custom/*/ 2>/dev/null | wc -l | tr -d ' ')
 fi
 
 # ── Star prompt ──────────────────────────────────────────────────────────────
