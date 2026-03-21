@@ -50,10 +50,10 @@ Install https://raw.githubusercontent.com/nikilster/clawflows/main/system/AGENT.
 
 | Workflow | Schedule | What it does |
 |----------|----------|-------------|
-| 🛏️ [activate-sleep-mode](workflows/available/community/activate-sleep-mode/WORKFLOW.md) | On-demand | Turns off all lights, speakers, thermostats + turns on bedroom fan |
-| 🌙 [activate-night-mode](workflows/available/community/activate-night-mode/WORKFLOW.md) | On-demand | Dims lights to warm red, plays sleep music |
-| 🌅 [activate-morning-mode](workflows/available/community/activate-morning-mode/WORKFLOW.md) | On-demand | Bright warm lights, comfortable thermostat, energizing music |
-| 🧘 [activate-focus-mode](workflows/available/community/activate-focus-mode/WORKFLOW.md) | On-demand | Bright daylight lights, mutes speakers, blocks distracting sites |
+| 🛏️ [activate-sleep-mode](workflows/available/community/activate-sleep-mode/WORKFLOW.md) | 10pm | Turns off all lights, speakers, thermostats + turns on bedroom fan |
+| 🌙 [activate-night-mode](workflows/available/community/activate-night-mode/WORKFLOW.md) | 8pm | Dims lights to warm red, plays sleep music |
+| 🌅 [activate-morning-mode](workflows/available/community/activate-morning-mode/WORKFLOW.md) | 9am | Bright warm lights, comfortable thermostat, energizing music |
+| 🧘 [activate-focus-mode](workflows/available/community/activate-focus-mode/WORKFLOW.md) | 10am | Bright daylight lights, mutes speakers, blocks distracting sites |
 | 🚪 [activate-away-mode](workflows/available/community/activate-away-mode/WORKFLOW.md) | On-demand | Everything off, thermostat to eco — for when you leave the house |
 
 ### ☀️ Daily Routines
@@ -84,7 +84,7 @@ Install https://raw.githubusercontent.com/nikilster/clawflows/main/system/AGENT.
 
 | Workflow | Schedule | What it does |
 |----------|----------|-------------|
-| 🍽️ [plan-meals](workflows/available/community/plan-meals/WORKFLOW.md) | On-demand | Weekly meal plan based on your diet, what's in season, and calendar busyness + grocery list |
+| 🍽️ [plan-meals](workflows/available/community/plan-meals/WORKFLOW.md) | Sunday 6pm | Weekly meal plan based on your diet, what's in season, and calendar busyness + grocery list |
 | 🌦️ [check-weather-alerts](workflows/available/community/check-weather-alerts/WORKFLOW.md) | 7am, 3pm | Proactive weather alerts tied to your calendar — rain before your outdoor meeting |
 | 🎂 [send-birthday-reminders](workflows/available/community/send-birthday-reminders/WORKFLOW.md) | 8am | Upcoming birthdays with gift ideas and message templates, 3 days early |
 | 🧹 [schedule-chores](workflows/available/community/schedule-chores/WORKFLOW.md) | Saturday 9am | Weekly chore rotation that keeps your household running smoothly |
@@ -103,7 +103,7 @@ Install https://raw.githubusercontent.com/nikilster/clawflows/main/system/AGENT.
 | 💳 [check-subscriptions](workflows/available/community/check-subscriptions/WORKFLOW.md) | Monday 9am | Find forgotten subscriptions, calculate monthly burn, suggest what to cancel |
 | 📦 [track-packages](workflows/available/community/track-packages/WORKFLOW.md) | 8am, 5pm | Consolidated delivery status board from order confirmation emails |
 | 🏷️ [find-deals](workflows/available/community/find-deals/WORKFLOW.md) | 10am | Monitor price drops on wishlist items and alert when they hit your target price |
-| 💰 [send-expense-report](workflows/available/community/send-expense-report/WORKFLOW.md) | On-demand | Scans email for receipts, categorizes spending, sends a monthly report |
+| 💰 [send-expense-report](workflows/available/community/send-expense-report/WORKFLOW.md) | 1st 9am | Scans email for receipts, categorizes spending, sends a monthly report |
 | 💰 [track-budget](workflows/available/community/track-budget/WORKFLOW.md) | Friday 6pm | Weekly spending check — scans receipts and bank notifications against your budget |
 | 🎯 [track-savings-goals](workflows/available/community/track-savings-goals/WORKFLOW.md) | 1st 9am | Monthly progress tracker for vacation, emergency fund, and other savings targets |
 | 🛡️ [check-warranties](workflows/available/community/check-warranties/WORKFLOW.md) | Monday 9am | Tracks warranties and return windows — alerts you before they expire |
@@ -137,11 +137,11 @@ Install https://raw.githubusercontent.com/nikilster/clawflows/main/system/AGENT.
 | ✅ [triage-tasks](workflows/available/community/triage-tasks/WORKFLOW.md) | 8am | Morning task review — what's due, overdue, and your top 3 priorities |
 | 📅 [plan-week](workflows/available/community/plan-week/WORKFLOW.md) | Sunday 6pm | Sunday evening planning — reviews calendar, sets priorities, preps for Monday |
 | 📋 [review-week](workflows/available/community/review-week/WORKFLOW.md) | Friday 5pm | Friday reflection — calendar, tasks, goals progress, what went well |
-| 📊 [review-month](workflows/available/community/review-month/WORKFLOW.md) | On-demand | Monthly review — wins, struggles, goal progress, adjustments for next month |
+| 📊 [review-month](workflows/available/community/review-month/WORKFLOW.md) | 1st 9am | Monthly review — wins, struggles, goal progress, adjustments for next month |
 | 🏔️ [set-quarterly-goals](workflows/available/community/set-quarterly-goals/WORKFLOW.md) | On-demand | Quarterly goal-setting — review last quarter, set 3-5 measurable goals |
 | ⏱️ [track-time](workflows/available/community/track-time/WORKFLOW.md) | 8pm | Daily time audit — where did your hours go? Shows patterns over time |
 | 🎧 [block-deep-work](workflows/available/community/block-deep-work/WORKFLOW.md) | 8am | Protects focus time — finds gaps in your schedule and blocks deep work windows |
-| 🧹 [clear-open-tabs](workflows/available/community/clear-open-tabs/WORKFLOW.md) | On-demand | Browser tab cleanup — bookmark keepers, close stale ones, fresh start |
+| 🧹 [clear-open-tabs](workflows/available/community/clear-open-tabs/WORKFLOW.md) | Friday 5pm | Browser tab cleanup — bookmark keepers, close stale ones, fresh start |
 | 🗺️ [plan-errands](workflows/available/community/plan-errands/WORKFLOW.md) | Saturday 8am | Saturday errand planner — groups by location, suggests efficient route |
 
 ### 💼 Work & Meetings
@@ -151,7 +151,7 @@ Install https://raw.githubusercontent.com/nikilster/clawflows/main/system/AGENT.
 | 🔍 [prep-next-meeting](workflows/available/community/prep-next-meeting/WORKFLOW.md) | Every 30 min | Researches attendees, pulls context, generates talking points before your next meeting |
 | 🧍 [build-standup](workflows/available/community/build-standup/WORKFLOW.md) | 9am | Auto-generates daily standup from git commits and completed tasks |
 | 🌆 [send-daily-wrap](workflows/available/community/send-daily-wrap/WORKFLOW.md) | 6pm | End-of-day summary — what you accomplished, what's pending, tomorrow preview |
-| 📆 [sync-calendar-tasks](workflows/available/community/sync-calendar-tasks/WORKFLOW.md) | On-demand | Extracts action items from calendar events, suggests tasks |
+| 📆 [sync-calendar-tasks](workflows/available/community/sync-calendar-tasks/WORKFLOW.md) | 8am | Extracts action items from calendar events, suggests tasks |
 | 💼 [prep-interview](workflows/available/community/prep-interview/WORKFLOW.md) | On-demand | Company research, interviewer profiles, practice questions — full prep packet |
 
 ### ✈️ Travel & Events
@@ -170,7 +170,7 @@ Install https://raw.githubusercontent.com/nikilster/clawflows/main/system/AGENT.
 |----------|----------|-------------|
 | 📚 [curate-reading-list](workflows/available/community/curate-reading-list/WORKFLOW.md) | 8am | Scan HN, Reddit, RSS for articles you'd love — deduplicated and ranked |
 | 📰 [send-news-digest](workflows/available/community/send-news-digest/WORKFLOW.md) | 7am | Curated news on topics you care about — no doom-scrolling required |
-| 📱 [draft-social-posts](workflows/available/community/draft-social-posts/WORKFLOW.md) | On-demand | Generate a week of social content from your work and interests — never posts automatically |
+| 📱 [draft-social-posts](workflows/available/community/draft-social-posts/WORKFLOW.md) | Monday 9am | Generate a week of social content from your work and interests — never posts automatically |
 | 🎧 [summarize-podcasts](workflows/available/community/summarize-podcasts/WORKFLOW.md) | On-demand | Key takeaways and timestamps from any podcast episode |
 | ✍️ [daily-writing-prompt](workflows/available/community/daily-writing-prompt/WORKFLOW.md) | 7am | Creative writing prompt every morning — fiction, memoir, poetry, observation |
 | 🌙 [log-dreams](workflows/available/community/log-dreams/WORKFLOW.md) | 7am | Morning dream journal — tracks recurring themes and symbols over time |
@@ -180,22 +180,22 @@ Install https://raw.githubusercontent.com/nikilster/clawflows/main/system/AGENT.
 
 | Workflow | Schedule | What it does |
 |----------|----------|-------------|
-| 📷 [backup-photos](workflows/available/community/backup-photos/WORKFLOW.md) | On-demand | Organize, deduplicate, and sort photos — separates screenshots from real photos |
-| 📥 [process-downloads](workflows/available/community/process-downloads/WORKFLOW.md) | On-demand | Organizes downloads by file type, removes duplicates, archives old files |
-| 📸 [process-screenshots](workflows/available/community/process-screenshots/WORKFLOW.md) | On-demand | Sorts screenshots into dated folders, removes duplicates, cleans up old ones |
+| 📷 [backup-photos](workflows/available/community/backup-photos/WORKFLOW.md) | Sunday 2am | Organize, deduplicate, and sort photos — separates screenshots from real photos |
+| 📥 [process-downloads](workflows/available/community/process-downloads/WORKFLOW.md) | Friday 6pm | Organizes downloads by file type, removes duplicates, archives old files |
+| 📸 [process-screenshots](workflows/available/community/process-screenshots/WORKFLOW.md) | Friday 6pm | Sorts screenshots into dated folders, removes duplicates, cleans up old ones |
 | 📸 [review-photos-today](workflows/available/community/review-photos-today/WORKFLOW.md) | 8am | "On this day" photo memories from previous years |
 
 ### 🔒 Digital Hygiene
 
 | Workflow | Schedule | What it does |
 |----------|----------|-------------|
-| 💾 [check-disk](workflows/available/community/check-disk/WORKFLOW.md) | On-demand | Disk space audit — large files, caches, cleanup recommendations |
+| 💾 [check-disk](workflows/available/community/check-disk/WORKFLOW.md) | Monday 8am | Disk space audit — large files, caches, cleanup recommendations |
 | 🌐 [check-network](workflows/available/community/check-network/WORKFLOW.md) | 8am | Scan home network for devices, check speed, verify DNS/VPN, flag unknowns |
-| 🔒 [check-security](workflows/available/community/check-security/WORKFLOW.md) | On-demand | Security hygiene — updates, open ports, FileVault, Firewall status |
+| 🔒 [check-security](workflows/available/community/check-security/WORKFLOW.md) | Sunday 8am | Security hygiene — updates, open ports, FileVault, Firewall status |
 | 🔕 [process-notifications](workflows/available/community/process-notifications/WORKFLOW.md) | On-demand | Audits notification settings, identifies noisy apps, suggests silencing |
 | 🔖 [sync-bookmarks](workflows/available/community/sync-bookmarks/WORKFLOW.md) | On-demand | Checks bookmarks for dead links, removes duplicates, organizes by topic |
-| 🔐 [review-passwords](workflows/available/community/review-passwords/WORKFLOW.md) | On-demand | Flags weak, reused, or breached passwords — helps you prioritize updates |
-| 📧 [clean-email](workflows/available/community/clean-email/WORKFLOW.md) | On-demand | Finds newsletters you never read, suggests unsubscribes and bulk archives |
+| 🔐 [review-passwords](workflows/available/community/review-passwords/WORKFLOW.md) | 1st 9am | Flags weak, reused, or breached passwords — helps you prioritize updates |
+| 📧 [clean-email](workflows/available/community/clean-email/WORKFLOW.md) | Sunday 10am | Finds newsletters you never read, suggests unsubscribes and bulk archives |
 | 🔒 [check-privacy](workflows/available/community/check-privacy/WORKFLOW.md) | On-demand | Reviews app permissions and connected accounts — suggests tightening up |
 | 💾 [backup-important-files](workflows/available/community/backup-important-files/WORKFLOW.md) | Sunday 3am | Weekly backup check — verifies critical files are protected |
 
@@ -212,14 +212,14 @@ Install https://raw.githubusercontent.com/nikilster/clawflows/main/system/AGENT.
 
 | Workflow | Schedule | What it does |
 |----------|----------|-------------|
-| 🔍 [check-repos](workflows/available/community/check-repos/WORKFLOW.md) | On-demand | Scans local git repos for uncommitted changes, stale branches, unpushed commits |
+| 🔍 [check-repos](workflows/available/community/check-repos/WORKFLOW.md) | 9am | Scans local git repos for uncommitted changes, stale branches, unpushed commits |
 | 📋 [review-prs](workflows/available/community/review-prs/WORKFLOW.md) | 9am | Daily PR hygiene — stale reviews, new comments, merge-ready, failing CI |
 | 📦 [check-dependencies](workflows/available/community/check-dependencies/WORKFLOW.md) | Monday 8am | Outdated deps, known CVEs, available updates across npm, pip, cargo, brew |
-| 🐳 [clean-docker](workflows/available/community/clean-docker/WORKFLOW.md) | On-demand | Prune dangling images, stopped containers, unused volumes — asks before deleting |
-| 📜 [rotate-logs](workflows/available/community/rotate-logs/WORKFLOW.md) | On-demand | Archive old logs, flag fast-growing files, report disk usage |
-| 📦 [sync-dotfiles](workflows/available/community/sync-dotfiles/WORKFLOW.md) | On-demand | Backs up dotfiles and Homebrew config to a git repo |
+| 🐳 [clean-docker](workflows/available/community/clean-docker/WORKFLOW.md) | Sunday 3am | Prune dangling images, stopped containers, unused volumes — asks before deleting |
+| 📜 [rotate-logs](workflows/available/community/rotate-logs/WORKFLOW.md) | Sunday 4am | Archive old logs, flag fast-growing files, report disk usage |
+| 📦 [sync-dotfiles](workflows/available/community/sync-dotfiles/WORKFLOW.md) | Sunday 2am | Backs up dotfiles and Homebrew config to a git repo |
 | 📝 [build-changelog](workflows/available/community/build-changelog/WORKFLOW.md) | On-demand | Generates a formatted changelog from git history since the last tag |
-| 🔨 [build-nightly-project](workflows/available/community/build-nightly-project/WORKFLOW.md) | On-demand | Picks an idea from a queue and builds a small project overnight |
+| 🔨 [build-nightly-project](workflows/available/community/build-nightly-project/WORKFLOW.md) | Midnight | Picks an idea from a queue and builds a small project overnight |
 | 💻 [review-week-git](workflows/available/community/review-week-git/WORKFLOW.md) | Friday 5pm | Weekly dev review — git commits, PRs, code reviews, technical decisions |
 
 ### ⚙️ System
