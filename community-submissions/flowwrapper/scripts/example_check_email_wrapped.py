@@ -45,7 +45,6 @@ def call(system: str, user: str, schema: dict) -> dict:
             {"role": "system", "content": prompt},
             {"role": "user", "content": user},
         ],
-        temperature=0.1,
     )
     raw = response.choices[0].message.content.strip()
     if raw.startswith("```"):
