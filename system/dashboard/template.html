@@ -372,9 +372,12 @@
     font-family: 'DM Sans', -apple-system, sans-serif;
     color: #d4dee8;
   }
-  .share-img-logo {
+  .share-img-title {
     font-size: 28px; font-weight: 700; letter-spacing: -0.03em;
-    margin-bottom: 4px;
+    margin-bottom: 4px; color: #eef2f6;
+  }
+  .share-img-logo {
+    font-size: 16px; font-weight: 700; letter-spacing: -0.03em;
   }
   .share-img-logo .claw { color: #f78166; }
   .share-img-logo .flows { color: #eef2f6; }
@@ -393,7 +396,7 @@
     margin-top: 24px; padding-top: 16px;
     border-top: 1px solid #1e2d3d;
     font-size: 12px; color: #455568;
-    display: flex; justify-content: space-between;
+    display: flex; justify-content: space-between; align-items: center;
   }
 
   .share-preview { margin-bottom: 20px; }
@@ -574,7 +577,7 @@
     margin-top: 24px; padding-top: 16px;
     border-top: 1px solid #1e2d3d;
     font-size: 12px; color: #455568;
-    display: flex; justify-content: space-between;
+    display: flex; justify-content: space-between; align-items: center;
   }
 </style>
 </head>
@@ -667,9 +670,9 @@
       <button class="share-btn copy-btn" id="wfShareCopy">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
         Copy Text</button>
-      <a class="share-btn x-btn" id="wfShareX" href="#" target="_blank" rel="noopener">
+      <button class="share-btn x-btn" id="wfShareX">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-        Post on X</a>
+        Post on X</button>
     </div>
   </div>
 </div>
@@ -849,11 +852,11 @@ function renderShareTab() {
   el.innerHTML =
     '<div class="share-page">' +
       '<div class="share-page-title">Share My Workflows</div>' +
-      '<div class="share-page-sub">Download the image, then attach it to your post.</div>' +
+      '<div class="share-page-sub">Post on X to share your setup — the image is copied to your clipboard automatically.</div>' +
       '<div class="share-btns">' +
-        '<a class="share-btn x-btn" href="https://x.com/intent/tweet?text=' + tweetText + '" target="_blank" rel="noopener">' +
+        '<button class="share-btn x-btn" id="share-x-btn">' +
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>' +
-          'Post on X</a>' +
+          'Post on X</button>' +
         nativeBtn +
         '<button class="share-btn dl-btn" id="share-dl-btn">' +
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
@@ -869,10 +872,10 @@ function renderShareTab() {
   card.id = 'share-img-card';
   card.className = 'share-img-card';
   card.innerHTML =
-    '<div class="share-img-logo">My <span class="claw">Claw</span><span class="flows">Flows</span></div>' +
+    '<div class="share-img-title">My OpenClaw Workflows</div>' +
     '<div class="share-img-sub">' + enabled.length + ' workflow' + (enabled.length === 1 ? '' : 's') + ' enabled</div>' +
     '<div class="share-img-list">' + imgItems + '</div>' +
-    '<div class="share-img-footer"><span>github.com/nikilster/clawflows</span></div>';
+    '<div class="share-img-footer"><span class="share-img-logo"><span class="claw">Claw</span><span class="flows">Flows</span></span><span>github.com/nikilster/clawflows</span></div>';
   document.body.appendChild(card);
 
   // Render to canvas
@@ -899,6 +902,24 @@ function renderShareTab() {
     a.download = 'clawflows-setup.png';
     a.click();
     toast('Image downloaded!');
+  });
+
+  document.getElementById('share-x-btn').addEventListener('click', function() {
+    if (!shareBlob) { toast('Image not ready yet'); return; }
+    var xUrl = 'https://x.com/intent/tweet?text=' + tweetText;
+    if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+      var item = new ClipboardItem({ 'image/png': shareBlob });
+      navigator.clipboard.write([item]).then(function() {
+        window.open(xUrl, '_blank');
+        toast('Image copied \u2014 paste it in your tweet!');
+      }).catch(function() {
+        window.open(xUrl, '_blank');
+        toast('Could not copy image \u2014 use Download Image instead');
+      });
+    } else {
+      window.open(xUrl, '_blank');
+      toast('Paste not supported \u2014 use Download Image to attach manually');
+    }
   });
 
   if (document.getElementById('share-native-btn')) {
@@ -1315,8 +1336,8 @@ function openWfShare(name) {
   document.getElementById('wfShareTitle').textContent = 'Share ' + (w.emoji || '') + ' ' + w.name;
   document.getElementById('wfSharePreview').innerHTML = '<div class="loading">Generating image</div>';
 
-  var tweetText = encodeURIComponent((w.emoji ? w.emoji + ' ' : '') + w.name + (w.description ? ' — ' + w.description : '') + '\n\nhttps://github.com/nikilster/clawflows');
-  document.getElementById('wfShareX').href = 'https://x.com/intent/tweet?text=' + tweetText;
+  var wfTweetText = encodeURIComponent((w.emoji ? w.emoji + ' ' : '') + w.name + (w.description ? ' \u2014 ' + w.description : '') + '\n\nhttps://github.com/nikilster/clawflows');
+  document.getElementById('wfShareX').dataset.xUrl = 'https://x.com/intent/tweet?text=' + wfTweetText;
 
   document.getElementById('wfShareOverlay').classList.add('open');
 
@@ -1333,12 +1354,11 @@ function openWfShare(name) {
   card.id = 'wf-share-img-card';
   card.className = 'wf-share-img-card';
   card.innerHTML =
-    '<div class="share-img-logo"><span class="claw">Claw</span><span class="flows">Flows</span></div>' +
     '<div class="wf-share-img-emoji">' + (w.emoji || '') + '</div>' +
     '<div class="wf-share-img-name">' + esc(w.name) + '</div>' +
     '<div class="wf-share-img-desc">' + esc(w.description) + '</div>' +
     '<div class="wf-share-img-install"><span>clawflows enable</span> ' + esc(w.name) + '</div>' +
-    '<div class="wf-share-img-footer"><span>github.com/nikilster/clawflows</span></div>';
+    '<div class="wf-share-img-footer"><span class="share-img-logo"><span class="claw">Claw</span><span class="flows">Flows</span></span><span>github.com/nikilster/clawflows</span></div>';
   document.body.appendChild(card);
 
   if (typeof html2canvas !== 'undefined') {
@@ -1386,6 +1406,24 @@ document.getElementById('wfShareCopy').addEventListener('click', function() {
     document.execCommand('copy');
     document.body.removeChild(ta);
     toast('Copied to clipboard!');
+  }
+});
+
+document.getElementById('wfShareX').addEventListener('click', function() {
+  if (!wfShareBlob) { toast('Image not ready yet'); return; }
+  var xUrl = this.dataset.xUrl || 'https://x.com/intent/tweet';
+  if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+    var item = new ClipboardItem({ 'image/png': wfShareBlob });
+    navigator.clipboard.write([item]).then(function() {
+      window.open(xUrl, '_blank');
+      toast('Image copied \u2014 paste it in your tweet!');
+    }).catch(function() {
+      window.open(xUrl, '_blank');
+      toast('Could not copy image \u2014 use Download Image instead');
+    });
+  } else {
+    window.open(xUrl, '_blank');
+    toast('Paste not supported \u2014 use Download Image to attach manually');
   }
 });
 
