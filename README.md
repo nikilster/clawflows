@@ -228,6 +228,12 @@ Install https://raw.githubusercontent.com/nikilster/clawflows/main/system/AGENT.
 |----------|-------------|
 | 🔄 [update-clawflows](workflows/available/community/update-clawflows/WORKFLOW.md) | Pull latest workflows from GitHub and check for announcements |
 
+### 🌐 Community Created
+
+| Workflow | What it does | Author |
+|----------|-------------|--------|
+| 🔐 [check-aws-security](community-submissions/check-aws-security/WORKFLOW.md) | Security audit for AWS infrastructure — EC2, security groups, IAM, Secrets Manager, CloudTrail | [@march_io](https://x.com/march_io) |
+
 <br>
 
 ## How to Use
