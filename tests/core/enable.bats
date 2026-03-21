@@ -21,8 +21,29 @@ teardown() {
     run_clawflows enable test-workflow
 
     assert_success
-    assert_output --partial "enabled: test-workflow"
+    assert_output --partial "test-workflow enabled"
     assert [ -L "${ENABLED_DIR}/test-workflow" ]
+}
+
+@test "enable: shows description and schedule" {
+    create_community_workflow "test-workflow" "🧪" "A test workflow" "9am"
+
+    run_clawflows enable test-workflow
+
+    assert_success
+    assert_output --partial "🧪 test-workflow enabled"
+    assert_output --partial "A test workflow"
+    assert_output --partial "Runs daily at 9am"
+}
+
+@test "enable: shows on-demand hint for unscheduled workflow" {
+    create_community_workflow "test-workflow" "🧪" "A test workflow"
+
+    run_clawflows enable test-workflow
+
+    assert_success
+    assert_output --partial "On-demand"
+    assert_output --partial "clawflows run test-workflow"
 }
 
 @test "enable: enables a custom workflow (takes priority)" {
@@ -73,7 +94,8 @@ teardown() {
     run_clawflows enable test-workflow
 
     assert_success
-    assert_output --partial "synced AGENTS.md"
+    # Sync runs silently now — verify AGENTS.md was updated
+    agents_md_contains "test-workflow"
 }
 
 @test "enable: with no argument fails" {

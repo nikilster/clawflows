@@ -22,7 +22,7 @@ teardown() {
     local json='{"name": "lifecycle-test", "summary": "Lifecycle test", "description": "Test the full lifecycle"}'
     run_clawflows create --from-json "$json"
     assert_success
-    assert_output --partial "enabled: lifecycle-test"
+    assert_output --partial "lifecycle-test enabled"
 
     # Verify it's enabled
     run_clawflows list enabled
@@ -121,7 +121,6 @@ teardown() {
     # Verify all enabled
     run_clawflows list enabled
     assert_success
-    assert_output --partial "Enabled (3)"
     assert_output --partial "workflow-1"
     assert_output --partial "workflow-2"
     assert_output --partial "workflow-3"

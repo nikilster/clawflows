@@ -55,8 +55,8 @@ teardown() {
     run_clawflows enable morning-brief
 
     assert_success
-    assert_output --partial "enabled: morning-brief"
-    assert_output --partial "scheduler started"
+    assert_output --partial "morning-brief enabled"
+    assert_output --partial "Runs daily at"
 
     # Verify cron add was called
     assert [ -f "${TEST_TMPDIR}/openclaw.log" ]
@@ -73,7 +73,7 @@ teardown() {
     run_clawflows enable test-workflow
 
     assert_success
-    assert_output --partial "enabled: test-workflow"
+    assert_output --partial "test-workflow enabled"
     refute_output --partial "scheduler started"
 
     # cron add should not have been called
@@ -90,7 +90,7 @@ teardown() {
     run_clawflows enable morning-brief
 
     assert_success
-    assert_output --partial "enabled: morning-brief"
+    assert_output --partial "morning-brief enabled"
     refute_output --partial "scheduler started"
 
     # cron list was called but cron add should not have been
@@ -106,7 +106,7 @@ teardown() {
     run_clawflows enable morning-brief
 
     assert_success
-    assert_output --partial "enabled: morning-brief"
+    assert_output --partial "morning-brief enabled"
     refute_output --partial "scheduler started"
 
     # No log file since openclaw was never called
@@ -120,7 +120,7 @@ teardown() {
 
     run_clawflows enable morning-brief
     assert_success
-    assert_output --partial "scheduler started"
+    assert_output --partial "Runs daily at"
 
     # Second enable — mock still returns no cron (fresh mock), so it will set up again
     # In real usage, cron list would return the existing job after first add

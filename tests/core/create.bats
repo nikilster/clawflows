@@ -45,7 +45,7 @@ teardown() {
     run_clawflows create --from-json "$json"
 
     assert_success
-    assert_output --partial "enabled: auto-enabled"
+    assert_output --partial "auto-enabled enabled"
     assert [ -L "${ENABLED_DIR}/auto-enabled" ]
 }
 

@@ -496,11 +496,28 @@ cmd_enable() {
 
   # Create symlink
   ln -s "$source_dir" "$ENABLED_DIR/$name"
-  echo "enabled: $name"
+
+  # Show a friendly enable message
+  local wf_file="$source_dir/WORKFLOW.md"
+  local emoji desc schedule
+  emoji="$(get_field "$wf_file" emoji)"
+  desc="$(get_field "$wf_file" description)"
+  schedule="$(get_field "$wf_file" schedule)"
+
+  local label="${emoji:+$emoji }$name"
+  echo ""
+  echo "  $label enabled"
+  if [ -n "$desc" ]; then
+    echo "  $desc"
+  fi
+  if [ -n "$schedule" ]; then
+    echo "  Runs daily at $schedule"
+  else
+    echo "  On-demand — run anytime with: clawflows run $name"
+  fi
+  echo ""
 
   # If this workflow has a schedule, ensure the scheduler cron is set up
-  local schedule
-  schedule="$(get_field "$source_dir/WORKFLOW.md" schedule)"
   if [ -n "$schedule" ]; then
     local oc
     oc="$(_find_openclaw)"
@@ -511,11 +528,10 @@ cmd_enable() {
         --session isolated \
         --message "Read and execute $CLAWFLOWS_DIR/system/scheduler.md" \
         --no-deliver </dev/null >/dev/null 2>&1 || true
-      echo "scheduler started (checks every 15 min)"
     fi
   fi
 
-  cmd_sync
+  cmd_sync >/dev/null 2>&1
 }
 
 cmd_disable() {

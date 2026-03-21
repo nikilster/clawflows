@@ -4,6 +4,8 @@
 
 - 🐛 **Essentials Pack actually enables now** — The installer was checking `workflows/available/` instead of `workflows/available/community/`, so the 4 essentials never actually got enabled. The banana was in the wrong basket this whole time! 🍌
 - ✨ **Try-it-now suggests morning inspiration** — Changed the post-install "Try It Now" suggestion from `check-calendar` to `send-morning-inspiration` — works without any services configured, so new users get instant gratification! 🍌
+- 💬 **Friendlier enable messages** — `clawflows enable` now shows the emoji, description, and schedule instead of debug-style output. You'll know exactly what you just turned on and when it runs! 🍌
+- 🖥️ **Dashboard in post-install** — The "Try It Now" section now suggests `clawflows dashboard` first so new users can browse everything visually.
 - 📧 **New check-email workflow** — A read-only inbox summary that categorizes your emails and shows what matters — no sneaky unsubscribing or archiving behind your back! Think of it as a banana you can look at but not peel 🍌
 - 🔄 **Safer essentials pack** — Swapped `process-email` for `check-email` in the Essentials Pack. New users get a gentle inbox overview instead of auto-unsubscribing from day one. You can always enable `process-email` later when you're ready to let the minion loose on your inbox!
 - 🚀 **Post-install try-it-now** — After installing, you now get a friendly nudge to run your first workflow right away. One command, instant banana gratification 🍌

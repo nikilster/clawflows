@@ -327,7 +327,11 @@ if [ -t 1 ]; then
   echo ""
   printf "  ${BOLD}🚀 Try It Now${RESET}\n"
   echo ""
-  printf "  See ClawFlows in action — run your first workflow:\n"
+  printf "  Browse all workflows in your browser:\n"
+  echo ""
+  printf "    ${CYAN}clawflows dashboard${RESET}\n"
+  echo ""
+  printf "  Or run your first workflow:\n"
   echo ""
   printf "    ${CYAN}clawflows run send-morning-inspiration${RESET}\n"
 fi
