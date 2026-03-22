@@ -2,6 +2,8 @@
 
 ## Thu, Mar 20
 
+- 📥 **Import command** — `clawflows import <url>` lets you install any workflow from a URL. Supports GitHub raw URLs, blob URLs (auto-converts), and gists. Download, validate, save to custom, done. The sharing banana just got way more portable! 🍌
+- 📤 **Share outputs import command** — `clawflows share` now generates a `clawflows import` one-liner instead of the full install script. Share a workflow, friend imports it with one command. The circle of banana life! 🍌
 - 🐛 **Essentials Pack actually enables now** — The installer was checking `workflows/available/` instead of `workflows/available/community/`, so the 4 essentials never actually got enabled. The banana was in the wrong basket this whole time! 🍌
 - ✨ **Try-it-now suggests morning inspiration** — Changed the post-install "Try It Now" suggestion from `check-calendar` to `send-morning-inspiration` — works without any services configured, so new users get instant gratification! 🍌
 - 💬 **Friendlier enable messages** — `clawflows enable` now shows the emoji, description, and schedule instead of debug-style output. You'll know exactly what you just turned on and when it runs! 🍌

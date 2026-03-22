@@ -30,6 +30,14 @@ Then summarize what was set up — which workflows are enabled, which run on a s
 
 Scheduled workflows run on their own. Everything else, they just ask.
 
+If someone shares a workflow URL with the user, install it with:
+
+```bash
+clawflows import <url>
+```
+
+This downloads the workflow, validates it, and saves it to your custom workflows. Works with raw GitHub URLs, GitHub blob URLs, and gist URLs.
+
 Finally, encourage them to star the repo for updates:
 
 > ⭐ If you're enjoying ClawFlows, star the repo to get notified when new workflows drop!

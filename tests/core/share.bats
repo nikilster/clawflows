@@ -25,23 +25,23 @@ teardown() {
     assert_output --partial "Daily morning briefing"
 }
 
-@test "share: includes install command with correct workflow name" {
+@test "share: includes import command with correct workflow name" {
     create_community_workflow "check-weather" "🌤️" "Check the weather"
 
     run_clawflows share check-weather
 
     assert_success
-    assert_output --partial "clawflows enable check-weather"
-    assert_output --partial "curl -fsSL"
+    assert_output --partial "clawflows import"
+    assert_output --partial "check-weather/WORKFLOW.md"
 }
 
-@test "share: includes install URL" {
+@test "share: includes raw GitHub URL for community workflow" {
     create_community_workflow "test-workflow" "🧪" "Test workflow"
 
     run_clawflows share test-workflow
 
     assert_success
-    assert_output --partial "https://raw.githubusercontent.com/nikilster/clawflows/main/system/install.sh"
+    assert_output --partial "https://raw.githubusercontent.com/nikilster/clawflows/main/workflows/available/community/test-workflow/WORKFLOW.md"
 }
 
 @test "share: non-existent workflow fails" {
@@ -87,5 +87,5 @@ teardown() {
     assert_success
     assert_output --partial "no-emoji-wf"
     assert_output --partial "No emoji here"
-    assert_output --partial "clawflows enable no-emoji-wf"
+    assert_output --partial "clawflows import"
 }

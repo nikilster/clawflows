@@ -85,6 +85,7 @@ cmd_help() {
   printf "\n${H}📤 Sharing${R}\n"
   printf "  ${CMD}share ${M}<name>${R}         Show shareable text for a workflow\n"
   printf "  ${CMD}share ${M}<name> --copy${R}  Copy share text to clipboard (macOS)\n"
+  printf "  ${CMD}import ${M}<url>${R}         Install a workflow from a URL (gist, GitHub, any HTTPS)\n"
 
   printf "\n${H}💾 Backup${R}\n"
   printf "  ${CMD}backup${R}               Back up custom workflows and enabled list\n"
@@ -783,7 +784,8 @@ _build_block() {
   lines+=("- \`clawflows open <name>\` — open a workflow in your editor")
   lines+=("- \`clawflows validate <name>\` — check a workflow has required fields")
   lines+=("- \`clawflows submit <name>\` — submit a custom workflow for community review")
-  lines+=("- \`clawflows share <name>\` — generate shareable text for a workflow (emoji, name, description, install command)")
+  lines+=("- \`clawflows share <name>\` — generate shareable text for a workflow (emoji, name, description, import command)")
+  lines+=("- \`clawflows import <url>\` — install a workflow from a URL (GitHub, gist, any HTTPS). Validates frontmatter and saves to custom/")
   lines+=("- \`clawflows logs [name] [date]\` — show recent run logs with output (what happened, results, errors)")
   lines+=("- \`clawflows backup\` — back up custom workflows and enabled list")
   lines+=("- \`clawflows restore\` — restore from a backup")
@@ -792,9 +794,13 @@ _build_block() {
   lines+=("")
   lines+=("### Sharing Workflows")
   lines+=("When the user wants to share a workflow with someone:")
-  lines+=("- \`clawflows share <name>\` — generates shareable text with the workflow's emoji, name, description, and install command")
+  lines+=("- \`clawflows share <name>\` — generates shareable text with the workflow's emoji, name, description, and import command")
   lines+=("- \`clawflows share <name> --copy\` — same but copies to clipboard (macOS)")
   lines+=("- The dashboard also has a Share button in each workflow's detail panel")
+  lines+=("")
+  lines+=("When the user wants to install a workflow someone shared with them:")
+  lines+=("- \`clawflows import <url>\` — downloads a WORKFLOW.md from a URL, validates it, and saves to custom/")
+  lines+=("- Supports raw GitHub URLs, GitHub blob URLs (auto-converts to raw), and gist URLs")
   lines+=("")
   lines+=("When the user wants to submit a workflow to the community:")
   lines+=("1. Create the workflow: \`clawflows create\`")
@@ -835,6 +841,7 @@ _build_block() {
   lines+=("| \"How's my disk space?\" | Run the \`check-disk\` workflow |")
   lines+=("| \"Uninstall clawflows\" | Run \`clawflows uninstall\` (confirm with user first) |")
   lines+=("| \"Make me a workflow\" / \"Make a clawflow\" / \"I want an automation for...\" | Create a custom workflow (see Creating Workflows above) |")
+  lines+=("| \"Install this workflow\" / \"Import from URL\" | Run \`clawflows import <url>\` |")
   lines+=("")
   lines+=("If the user asks for something that sounds like a workflow but you're not sure which one, run \`clawflows list\` and find the best match. If no existing workflow fits, offer to create a custom one.")
   lines+=("")
@@ -1248,10 +1255,26 @@ cmd_share() {
   emoji="$(get_field "$wf_file" emoji)"
   desc="$(get_field "$wf_file" description)"
 
+  # Determine if this is a community workflow (in the repo) or custom (local only)
+  local share_url=""
+  case "$source_dir" in
+    *"/workflows/available/community/"*)
+      share_url="https://raw.githubusercontent.com/nikilster/clawflows/main/workflows/available/community/$name/WORKFLOW.md"
+      ;;
+  esac
+
   local share_text="${emoji:+$emoji }$name
 ${desc:+$desc
 
-}Get it: curl -fsSL https://raw.githubusercontent.com/nikilster/clawflows/main/system/install.sh | bash && clawflows enable $name"
+}"
+
+  if [ -n "$share_url" ]; then
+    share_text="${share_text}Get it: clawflows import $share_url
+Need ClawFlows? curl -fsSL https://raw.githubusercontent.com/nikilster/clawflows/main/system/install.sh | bash"
+  else
+    share_text="${share_text}To share this workflow, upload WORKFLOW.md to a gist or repo, then share:
+  clawflows import <your-url>"
+  fi
 
   if [ "$copy_flag" = "--copy" ]; then
     if command -v pbcopy >/dev/null 2>&1; then
@@ -1264,6 +1287,103 @@ ${desc:+$desc
     fi
   else
     echo "$share_text"
+  fi
+}
+
+cmd_import() {
+  local url="${1:-}"
+
+  [ -n "$url" ] || die "usage: clawflows import <url>"
+
+  # Validate HTTPS
+  case "$url" in
+    https://*) ;;
+    http://*)  die "only HTTPS URLs are supported (got HTTP)" ;;
+    *)         die "invalid URL: $url (must start with https://)" ;;
+  esac
+
+  # Normalize GitHub blob URLs to raw
+  # https://github.com/user/repo/blob/branch/path -> https://raw.githubusercontent.com/user/repo/branch/path
+  local raw_url="$url"
+  if echo "$raw_url" | grep -q '^https://github\.com/.*/blob/'; then
+    raw_url="$(echo "$raw_url" | sed 's|^https://github\.com/\([^/]*/[^/]*\)/blob/|https://raw.githubusercontent.com/\1/|')"
+  fi
+
+  # Normalize gist URLs to raw
+  # https://gist.github.com/user/id -> https://gist.githubusercontent.com/user/id/raw
+  if echo "$raw_url" | grep -q '^https://gist\.github\.com/'; then
+    raw_url="$(echo "$raw_url" | sed 's|^https://gist\.github\.com/|https://gist.githubusercontent.com/|')"
+    # Append /raw if not already present
+    case "$raw_url" in
+      */raw|*/raw/) ;;
+      *) raw_url="${raw_url}/raw" ;;
+    esac
+  fi
+
+  # Download to temp file
+  local tmpfile
+  tmpfile="$(mktemp)"
+  trap "rm -f '$tmpfile'" EXIT
+
+  if ! curl -fsSL "$raw_url" -o "$tmpfile" 2>/dev/null; then
+    rm -f "$tmpfile"
+    die "failed to download from $raw_url"
+  fi
+
+  # Validate frontmatter
+  local wf_name wf_emoji wf_desc
+  wf_name="$(get_field "$tmpfile" name)"
+  wf_emoji="$(get_field "$tmpfile" emoji)"
+  wf_desc="$(get_field "$tmpfile" description)"
+
+  [ -n "$wf_name" ] || { rm -f "$tmpfile"; die "downloaded file is missing required 'name' field in frontmatter"; }
+  [ -n "$wf_desc" ] || { rm -f "$tmpfile"; die "downloaded file is missing required 'description' field in frontmatter"; }
+
+  # Show what was downloaded and warn about external source
+  echo ""
+  echo "  ${wf_emoji:+$wf_emoji }$wf_name"
+  [ -n "$wf_desc" ] && echo "  $wf_desc"
+  echo ""
+  echo "  ! Downloaded from: $url"
+  echo "  ! Review workflows before enabling — they run with your agent's permissions."
+  echo ""
+  printf "  Save this workflow? [y/N] "
+  read -r save_confirm
+  if [ "$save_confirm" != "y" ] && [ "$save_confirm" != "Y" ]; then
+    echo "  Cancelled."
+    rm -f "$tmpfile"
+    return
+  fi
+
+  # Check for conflicts
+  local dest_dir="$CUSTOM_DIR/$wf_name"
+  if [ -d "$dest_dir" ]; then
+    printf "  workflow '$wf_name' already exists in custom/. Overwrite? [y/N] "
+    read -r confirm
+    if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
+      echo "  Cancelled."
+      rm -f "$tmpfile"
+      return
+    fi
+  fi
+
+  # Save to custom/
+  mkdir -p "$dest_dir"
+  cp "$tmpfile" "$dest_dir/WORKFLOW.md"
+  rm -f "$tmpfile"
+  trap - EXIT
+
+  echo "  Saved to custom/$wf_name"
+
+  # Offer to enable
+  printf "  Enable this workflow? [Y/n] "
+  read -r enable_confirm
+  if [ "$enable_confirm" != "n" ] && [ "$enable_confirm" != "N" ]; then
+    cmd_enable "$wf_name"
+  else
+    echo ""
+    echo "  Enable later with: clawflows enable $wf_name"
+    echo ""
   fi
 }
 
@@ -1715,6 +1835,7 @@ case "$1" in
   validate)  [ $# -ge 2 ] || die "usage: clawflows validate <name>"; cmd_validate "$2" ;;
   submit)    [ $# -ge 2 ] || die "usage: clawflows submit <name>"; cmd_submit "$2" ;;
   share)     [ $# -ge 2 ] || die "usage: clawflows share <name>"; cmd_share "$2" "${3:-}" ;;
+  import)    [ $# -ge 2 ] || die "usage: clawflows import <url>"; cmd_import "$2" ;;
   backup)    cmd_backup "${2:-}" ;;
   restore)   cmd_restore "${2:-}" ;;
   update)    cmd_update ;;
