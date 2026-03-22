@@ -126,6 +126,16 @@ cmd_help() {
 
 die() { echo "error: $1" >&2; exit 1; }
 
+# Validate workflow name to prevent path traversal attacks
+validate_workflow_name() {
+  local name="$1"
+  # Only allow alphanumeric, dashes, underscores (no slashes, dots, or other special chars)
+  # Must start with alphanumeric, max length 64 chars
+  if ! printf '%s' "$name" | grep -qE '^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$'; then
+    die "invalid workflow name: '$name' (use only letters, numbers, dashes, underscores; max 64 chars)"
+  fi
+}
+
 # Extract a frontmatter field from a WORKFLOW.md file.
 get_field() {
   local file="$1" field="$2"
@@ -199,6 +209,7 @@ _create_from_json() {
 
   # Validate required fields
   [ -n "$name" ] || die "Missing required field: name"
+  validate_workflow_name "$name"
   [ -n "$summary" ] || die "Missing required field: summary"
   [ -n "$description" ] || die "Missing required field: description"
 
@@ -273,6 +284,12 @@ cmd_create() {
     read -r name
     if [ -n "$name" ]; then
       name="$(echo "$name" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')"
+      # Validate name format
+      if ! printf '%s' "$name" | grep -qE '^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$'; then
+        echo "  ⚠️  Invalid name: use only letters, numbers, dashes, underscores (max 64 chars)"
+        name=""
+        continue
+      fi
       # Suggest a verb-prefixed name if they didn't use one
       if ! echo "$name" | grep -qE '^(activate|process|check|build|send|sync|track|draft|review|plan|prep|curate|summarize|backup|clean|rotate|find)-'; then
         echo "  💡 Tip: names usually start with a verb like check-$name or track-$name"
@@ -485,6 +502,7 @@ cmd_list() {
 
 cmd_enable() {
   local name="$1"
+  validate_workflow_name "$name"
   local source_dir
   source_dir="$(_find_workflow "$name")"
 
@@ -537,6 +555,7 @@ cmd_enable() {
 
 cmd_disable() {
   local name="$1"
+  validate_workflow_name "$name"
   if [ ! -L "$ENABLED_DIR/$name" ] && [ ! -d "$ENABLED_DIR/$name" ]; then
     echo "not enabled: $name"
     return
@@ -550,6 +569,7 @@ cmd_disable() {
 
 cmd_edit() {
   local name="$1"
+  validate_workflow_name "$name"
 
   # Already in custom? Just show the path
   if [ -d "$CUSTOM_DIR/$name" ]; then
@@ -582,6 +602,7 @@ cmd_edit() {
 
 cmd_open() {
   local name="$1"
+  validate_workflow_name "$name"
   local wf_file=""
 
   # Find the workflow file (custom takes priority)
@@ -1117,6 +1138,7 @@ cmd_restore() {
 
 cmd_validate() {
   local name="$1"
+  validate_workflow_name "$name"
   local wf_dir wf_file errors=0
 
   # Find the workflow
@@ -1178,6 +1200,7 @@ cmd_validate() {
 
 cmd_submit() {
   local name="$1"
+  validate_workflow_name "$name"
 
   # Check if workflow exists in custom/
   if [ ! -d "$CUSTOM_DIR/$name" ]; then
@@ -1341,6 +1364,7 @@ Submitted via \`clawflows submit\`." 2>/dev/null || true)"
 
 cmd_share() {
   local name="${1:-}"
+  [ -n "$name" ] && validate_workflow_name "$name"
   local copy_flag="${2:-}"
 
   [ -n "$name" ] || die "usage: clawflows share <name>"
@@ -1382,6 +1406,7 @@ ${desc:+$desc
 
 cmd_run() {
   local name="$1"
+  validate_workflow_name "$name"
   local wf_file
 
   # Find the workflow
@@ -1434,6 +1459,7 @@ cmd_run() {
 
 cmd_logs() {
   local filter_name="${1:-}"
+  [ -n "$filter_name" ] && validate_workflow_name "$filter_name"
   local filter_date="${2:-}"
   local runs_dir="$CLAWFLOWS_DIR/system/runs"
 
