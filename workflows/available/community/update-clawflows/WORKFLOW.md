@@ -3,7 +3,7 @@ name: update-clawflows
 emoji: 🔄
 description: Pull the latest ClawFlows workflows and notify user of any announcements
 author: @davehappyminion
-schedule: "9am"
+schedule: "1am"
 ---
 
 # Update ClawFlows

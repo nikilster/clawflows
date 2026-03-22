@@ -93,6 +93,7 @@ cmd_help() {
   printf "\n${H}🔄 Maintenance${R}\n"
   printf "  ${CMD}update${R}               Pull the latest workflows from GitHub\n"
   printf "  ${CMD}sync-agent${R}           Refresh your agent's workflow list in AGENTS.md\n"
+  printf "  ${CMD}doctor${R}               Check for workflow issues (broken symlinks, drift)\n"
   printf "  ${CMD}uninstall${R}            Remove clawflows and clean up\n"
 
   printf "\n${H}ℹ️  Info${R}\n"
@@ -684,6 +685,61 @@ cmd_uninstall() {
   echo ""
 }
 
+cmd_doctor() {
+  echo ""
+  echo "  🩺 ClawFlows Doctor"
+  echo ""
+
+  local issues=0
+
+  # Check for non-symlink entries in enabled/
+  for entry in "$ENABLED_DIR"/*/; do
+    [ -d "$entry" ] || continue
+    local name
+    name="$(basename "$entry")"
+    if [ ! -L "$ENABLED_DIR/$name" ]; then
+      echo "  ⚠️  $name is a direct copy in enabled/ (should be a symlink)"
+      echo "     Fix: move to available/custom/$name/ and symlink back"
+      issues=$((issues + 1))
+    fi
+  done
+
+  # Check for broken symlinks in enabled/
+  for entry in "$ENABLED_DIR"/*; do
+    [ -L "$entry" ] || continue
+    if [ ! -e "$entry" ]; then
+      local name
+      name="$(basename "$entry")"
+      echo "  ❌ $name is a broken symlink (target missing)"
+      echo "     Target: $(readlink "$entry")"
+      issues=$((issues + 1))
+    fi
+  done
+
+  # Check for custom workflows not in available/custom/
+  for entry in "$ENABLED_DIR"/*; do
+    [ -L "$entry" ] || continue
+    [ -e "$entry" ] || continue
+    local target
+    target="$(readlink "$entry")"
+    local name
+    name="$(basename "$entry")"
+    if [[ "$target" != *"/available/custom/"* ]] && [[ "$target" != *"/available/community/"* ]]; then
+      echo "  ⚠️  $name symlink points outside available/: $target"
+      issues=$((issues + 1))
+    fi
+  done
+
+  if [ "$issues" -eq 0 ]; then
+    echo "  ✅ All workflows look healthy!"
+    echo "     All enabled workflows are proper symlinks."
+  else
+    echo ""
+    echo "  Found $issues issue(s)."
+  fi
+  echo ""
+}
+
 cmd_sync() {
   local block
   block="$(_build_block)"
@@ -750,6 +806,13 @@ _build_block() {
   lines+=("When the user wants to create a workflow, **read \`$CLAWFLOWS_DIR/docs/creating-workflows.md\` first and follow it.** It walks you through the interactive flow — asking questions, then creating with \`clawflows create --from-json\`.")
   lines+=("")
   lines+=("**Important:** \`clawflows create\` auto-enables the workflow and updates AGENTS.md — do NOT run \`clawflows enable\` separately. After creating, **re-read your AGENTS.md** to pick up the new workflow. Never create workflow files directly — always use the CLI.")
+  lines+=("")
+  lines+=("### ⚠️ Never Write Directly to \`enabled/\`")
+  lines+=("The \`workflows/enabled/\` folder should **ONLY contain symlinks**. Never create, copy, or edit files directly in \`enabled/\`.")
+  lines+=("- **New workflow** → \`clawflows create --from-json\`")
+  lines+=("- **Edit a custom workflow** → edit the source in \`workflows/available/custom/<name>/WORKFLOW.md\`")
+  lines+=("- **Customize a community workflow** → \`clawflows edit <name>\` (copies to custom/ for safe editing)")
+  lines+=("- Writing directly to \`enabled/\` causes drift, breaks symlinks, and can be overwritten by updates.")
   lines+=("")
   lines+=("### What Users Say → What To Do")
   lines+=("| What they say | What you do |")
@@ -1658,6 +1721,7 @@ case "$1" in
   dashboard) cmd_dashboard "${2:-}" ;;
   uninstall) cmd_uninstall ;;
   sync-agent) cmd_sync ;;
+  doctor)    cmd_doctor ;;
   help|--help|-h) cmd_help ;;
   *)         cmd_help ;;
 esac

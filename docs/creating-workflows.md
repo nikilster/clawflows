@@ -2,6 +2,20 @@
 
 How to build your own ClawFlows workflow.
 
+## ⚠️ Never Write Directly to `enabled/`
+
+The `workflows/enabled/` folder should **ONLY contain symlinks**. Never create, copy, or edit files directly in `enabled/`.
+
+| What you want to do | How to do it |
+|---------------------|--------------|
+| **Create a new workflow** | `clawflows create --from-json '{...}'` — creates in `available/custom/` and auto-symlinks to `enabled/` |
+| **Edit an existing custom workflow** | Edit the source file in `workflows/available/custom/<name>/WORKFLOW.md` |
+| **Customize a community workflow** | `clawflows edit <name>` — copies to `available/custom/` for safe editing |
+| **Enable a workflow** | `clawflows enable <name>` — creates a symlink in `enabled/` |
+| **Disable a workflow** | `clawflows disable <name>` — removes the symlink (source file is preserved) |
+
+**Why this matters:** If you write directly to `enabled/`, the file won't be tracked in `available/custom/` or `available/community/`. It can drift out of sync, get lost, or be confused with a community workflow during updates. Always use the CLI.
+
 ## Creating a Workflow (for Agents)
 
 When a user wants a custom workflow, walk them through it conversationally before creating anything.
