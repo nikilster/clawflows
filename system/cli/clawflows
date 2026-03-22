@@ -1207,22 +1207,135 @@ cmd_submit() {
   echo ""
   echo "  Workflow copied to community-submissions/"
   echo ""
-  echo "  $target_dir/WORKFLOW.md"
+
+  # ── Auto-submit via gh CLI ──────────────────────────────────────────────
+  # Check for gh CLI
+  if ! command -v gh &>/dev/null; then
+    echo "  ⚠️  gh CLI not found — install it for automatic PR submission:"
+    echo "     brew install gh && gh auth login"
+    echo ""
+    echo "  Manual steps:"
+    echo "  ─────────────────────────────────────────"
+    echo "  1. Fork this repo: https://github.com/nikilster/clawflows/fork"
+    echo "  2. git add community-submissions/$name"
+    echo "     git commit -m \"Add $name workflow\""
+    echo "     git push <your-fork-url> main"
+    echo "  3. Open a PR: https://github.com/nikilster/clawflows/compare"
+    echo ""
+    return
+  fi
+
+  # Check gh auth
+  if ! gh auth status &>/dev/null; then
+    echo "  ⚠️  gh CLI not authenticated. Run: gh auth login"
+    return 1
+  fi
+
+  # Get the upstream repo (owner/name) from origin
+  local origin_url
+  origin_url="$(git -C "$CLAWFLOWS_DIR" remote get-url origin 2>/dev/null || true)"
+  local upstream_repo=""
+  if [[ "$origin_url" =~ github\.com[:/]([^/]+/[^/.]+)(\.git)?$ ]]; then
+    upstream_repo="${BASH_REMATCH[1]}"
+  fi
+  if [ -z "$upstream_repo" ]; then
+    die "could not detect upstream repo from origin URL: $origin_url"
+  fi
+
+  # Get current gh user
+  local gh_user
+  gh_user="$(gh api user --jq '.login' 2>/dev/null || true)"
+  if [ -z "$gh_user" ]; then
+    die "could not detect GitHub username. Run: gh auth login"
+  fi
+
+  local upstream_owner="${upstream_repo%%/*}"
+  local repo_name="${upstream_repo##*/}"
+
+  # Skip fork if user owns the upstream repo
+  local fork_url=""
+  if [ "$gh_user" = "$upstream_owner" ]; then
+    fork_url="https://github.com/$upstream_repo.git"
+    echo "  You own the upstream repo — pushing directly."
+  else
+    # Check if a proper fork already exists
+    local is_fork
+    is_fork="$(gh repo view "$gh_user/$repo_name" --json isFork --jq '.isFork' 2>/dev/null || echo "none")"
+
+    if [ "$is_fork" = "true" ]; then
+      echo "  Fork found: $gh_user/$repo_name"
+    else
+      # Either doesn't exist, is a redirect, or is a non-fork repo with the same name
+      echo "  Creating fork..."
+      if ! gh repo fork "$upstream_repo" --clone=false 2>/dev/null; then
+        die "could not create fork. If $gh_user/$repo_name already exists as a non-fork repo, rename or delete it first."
+      fi
+      echo "  Fork created: $gh_user/$repo_name"
+    fi
+    fork_url="https://github.com/$gh_user/$repo_name.git"
+
+    # Sync fork with upstream so branches are based on latest
+    echo "  Syncing fork with upstream..."
+    gh repo sync "$gh_user/$repo_name" --source "$upstream_repo" 2>/dev/null || true
+  fi
+
+  # Create a branch, commit, push
+  local branch="submit/$name"
+  local prev_branch
+  prev_branch="$(git -C "$CLAWFLOWS_DIR" rev-parse --abbrev-ref HEAD)"
+
+  echo "  Creating branch $branch..."
+  git -C "$CLAWFLOWS_DIR" checkout -b "$branch" 2>/dev/null || git -C "$CLAWFLOWS_DIR" checkout "$branch" 2>/dev/null
+
+  git -C "$CLAWFLOWS_DIR" add "community-submissions/$name"
+  git -C "$CLAWFLOWS_DIR" commit -m "Add $name workflow" --quiet
+
+  echo "  Pushing to fork..."
+  git -C "$CLAWFLOWS_DIR" push "$fork_url" "$branch" --quiet 2>/dev/null
+
+  # Open PR
+  echo "  Opening pull request..."
+  local pr_url
+  if [ "$gh_user" = "$upstream_owner" ]; then
+    pr_url="$(gh pr create --repo "$upstream_repo" \
+      --head "$branch" \
+      --title "Add $name workflow" \
+      --body "## Workflow Submission
+
+**Workflow name:** $name
+
+**What does it do?**
+$(get_field "$target_dir/WORKFLOW.md" description)
+
+Submitted via \`clawflows submit\`." 2>/dev/null || true)"
+  else
+    pr_url="$(gh pr create --repo "$upstream_repo" \
+      --head "$gh_user:$branch" \
+      --title "Add $name workflow" \
+      --body "## Workflow Submission
+
+**Workflow name:** $name
+
+**What does it do?**
+$(get_field "$target_dir/WORKFLOW.md" description)
+
+Submitted via \`clawflows submit\`." 2>/dev/null || true)"
+  fi
+
+  # Switch back to previous branch
+  git -C "$CLAWFLOWS_DIR" checkout "$prev_branch" --quiet 2>/dev/null
+
   echo ""
-  echo "  Next steps:"
-  echo "  ─────────────────────────────────────────"
-  echo "  1. Fork this repo (if you haven't already)"
-  echo "     https://github.com/nikilster/clawflows/fork"
+  if [ -n "$pr_url" ]; then
+    echo "  ✅ Pull request opened!"
+    echo "  $pr_url"
+  else
+    echo "  ⚠️  Could not open PR automatically."
+    echo "  Branch pushed — open a PR manually at:"
+    echo "  https://github.com/$upstream_repo/compare/$branch"
+  fi
   echo ""
-  echo "  2. Commit and push your changes:"
-  echo "     git add community-submissions/$name"
-  echo "     git commit -m \"Add $name workflow\""
-  echo "     git push"
-  echo ""
-  echo "  3. Open a pull request:"
-  echo "     https://github.com/nikilster/clawflows/compare"
-  echo ""
-  echo "  Thanks for contributing!"
+  echo "  Thanks for contributing! 🍌"
   echo ""
 }
 
