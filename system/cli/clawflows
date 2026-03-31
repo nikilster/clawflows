@@ -91,6 +91,14 @@ cmd_help() {
   printf "  ${CMD}backup${R}               Back up custom workflows and enabled list\n"
   printf "  ${CMD}restore${R}              Restore from a backup\n"
 
+  printf "\n${H}🌐 Web${R}\n"
+  printf "  ${CMD}web login${R}             Sign in to ClawFlows Web\n"
+  printf "  ${CMD}web sync${R}              Push your custom workflows to the hub\n"
+  printf "  ${CMD}web install ${M}@user/wf${R}  Install a workflow from ClawFlows.ai\n"
+  printf "  ${CMD}web update${R}            Check for updates to web-installed workflows\n"
+  printf "  ${CMD}web whoami${R}            Check your login status\n"
+  printf "  ${CMD}web logout${R}            Sign out from the hub\n"
+
   printf "\n${H}🔄 Maintenance${R}\n"
   printf "  ${CMD}update${R}               Pull the latest workflows from GitHub\n"
   printf "  ${CMD}sync-agent${R}           Refresh your agent's workflow list in AGENTS.md\n"
@@ -2030,6 +2038,372 @@ cmd_dashboard() {
   fi
 }
 
+# ── Web Config ──────────────────────────────────────────────────────────────
+HUB_URL="${CLAWFLOWS_HUB_URL:-http://localhost:3000}"
+HUB_DIR="$HOME/.clawflows"
+HUB_TOKEN_FILE="$HUB_DIR/token"
+HUB_INSTALLED_FILE="$HUB_DIR/installed.json"
+
+_hub_ensure_dir() {
+  mkdir -p "$HUB_DIR"
+}
+
+_hub_get_token() {
+  if [ -f "$HUB_TOKEN_FILE" ]; then
+    cat "$HUB_TOKEN_FILE"
+  fi
+}
+
+_hub_save_token() {
+  _hub_ensure_dir
+  printf '%s' "$1" > "$HUB_TOKEN_FILE"
+  chmod 600 "$HUB_TOKEN_FILE"
+}
+
+_hub_get_installed() {
+  if [ -f "$HUB_INSTALLED_FILE" ]; then
+    cat "$HUB_INSTALLED_FILE"
+  else
+    echo "{}"
+  fi
+}
+
+_hub_save_installed() {
+  _hub_ensure_dir
+  printf '%s' "$1" > "$HUB_INSTALLED_FILE"
+}
+
+# ── Web Commands ────────────────────────────────────────────────────────────
+
+cmd_web_login() {
+  _hub_ensure_dir
+
+  echo "Starting ClawFlows Web login..."
+  echo ""
+
+  # Request a device code
+  local response
+  response="$(curl -sf -X POST "$HUB_URL/api/auth/device" \
+    -H "Content-Type: application/json" \
+    -d '{}')" || die "Could not reach ClawFlows Web at $HUB_URL"
+
+  local device_code user_code verification_url
+  device_code="$(printf '%s' "$response" | grep -o '"device_code":"[^"]*"' | sed 's/"device_code":"//;s/"//')"
+  user_code="$(printf '%s' "$response" | grep -o '"user_code":"[^"]*"' | sed 's/"user_code":"//;s/"//')"
+  verification_url="$(printf '%s' "$response" | grep -o '"verification_url":"[^"]*"' | sed 's/"verification_url":"//;s/"//')"
+
+  [ -n "$device_code" ] || die "Failed to get device code from hub"
+
+  echo "  Open this URL in your browser:"
+  echo ""
+  echo "    $verification_url"
+  echo ""
+  echo "  Your code: $user_code"
+  echo ""
+
+  # Try to open browser
+  open "$verification_url" 2>/dev/null || true
+
+  echo "  Waiting for authorization..."
+
+  # Poll for token
+  local attempts=0
+  local max_attempts=150  # 5 minutes at 2-second intervals
+  while [ $attempts -lt $max_attempts ]; do
+    local poll_response
+    poll_response="$(curl -sf -X POST "$HUB_URL/api/auth/token" \
+      -H "Content-Type: application/json" \
+      -d "{\"device_code\":\"$device_code\"}")" || true
+
+    local poll_status
+    poll_status="$(printf '%s' "$poll_response" | grep -o '"status":"[^"]*"' | sed 's/"status":"//;s/"//')"
+
+    if [ "$poll_status" = "approved" ]; then
+      local token agent_username
+      token="$(printf '%s' "$poll_response" | grep -o '"access_token":"[^"]*"' | sed 's/"access_token":"//;s/"//')"
+      agent_username="$(printf '%s' "$poll_response" | grep -o '"agent_username":"[^"]*"' | sed 's/"agent_username":"//;s/"//')"
+
+      _hub_save_token "$token"
+      echo ""
+      echo "  ✅ Logged in as @$agent_username"
+      echo ""
+      return
+    fi
+
+    if [ "$poll_status" = "expired" ] || [ -z "$poll_status" ]; then
+      break
+    fi
+
+    sleep 2
+    attempts=$((attempts + 1))
+  done
+
+  die "Login timed out. Try again with: clawflows web login"
+}
+
+cmd_web_logout() {
+  if [ -f "$HUB_TOKEN_FILE" ]; then
+    rm -f "$HUB_TOKEN_FILE"
+    echo "Logged out from ClawFlows Web."
+  else
+    echo "Not logged in."
+  fi
+}
+
+cmd_web_whoami() {
+  local token
+  token="$(_hub_get_token)"
+  [ -n "$token" ] || die "Not logged in. Run: clawflows web login"
+
+  # Quick check — try to sync with empty data to verify token
+  local response
+  response="$(curl -sf -X POST "$HUB_URL/api/sync" \
+    -H "Authorization: Bearer $token" \
+    -H "Content-Type: application/json" \
+    -d '{"workflows":[]}')" || die "Could not reach ClawFlows.ai or token is invalid"
+
+  local synced
+  synced="$(printf '%s' "$response" | grep -o '"synced":true')"
+  if [ -n "$synced" ]; then
+    echo "Logged in. Token is valid."
+  else
+    echo "Token may be invalid. Try: clawflows web login"
+  fi
+}
+
+cmd_web_sync() {
+  local token
+  token="$(_hub_get_token)"
+  [ -n "$token" ] || die "Not logged in. Run: clawflows web login"
+
+  echo "Syncing workflows to ClawFlows Web..."
+
+  # Build the workflow list from custom/ and enabled/
+  local workflows_json="["
+  local first=true
+  local custom_count=0
+
+  # Sync all custom workflows
+  if [ -d "$CUSTOM_DIR" ]; then
+    for dir in "$CUSTOM_DIR"/*/; do
+      [ -d "$dir" ] || continue
+      local wf_file="$dir/WORKFLOW.md"
+      [ -f "$wf_file" ] || continue
+
+      local name slug emoji desc category schedule content content_hash
+      name="$(basename "$dir")"
+      slug="$name"
+      emoji="$(get_field "$wf_file" emoji)"
+      desc="$(get_field "$wf_file" description)"
+      category="$(get_field "$wf_file" category)"
+      schedule="$(get_field "$wf_file" schedule)"
+      content="$(cat "$wf_file")"
+      content_hash="$(shasum -a 256 "$wf_file" | cut -d' ' -f1)"
+
+      # Get a display name from the frontmatter name field, falling back to slug
+      local display_name
+      display_name="$(get_field "$wf_file" name)"
+      [ -n "$display_name" ] || display_name="$name"
+      # Convert slug to title case for display
+      display_name="$(echo "$display_name" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2))}1')"
+
+      if [ "$first" = true ]; then
+        first=false
+      else
+        workflows_json="$workflows_json,"
+      fi
+
+      # Escape content for JSON
+      local escaped_content
+      escaped_content="$(printf '%s' "$content" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))' 2>/dev/null || printf '%s' "$content" | sed 's/\\/\\\\/g;s/"/\\"/g;s/\t/\\t/g' | tr '\n' '\n' | sed ':a;N;$!ba;s/\n/\\n/g')"
+
+      workflows_json="$workflows_json{\"name\":\"$display_name\",\"slug\":\"$slug\",\"emoji\":\"${emoji:-🔧}\",\"description\":$(printf '%s' "$desc" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))'),\"category\":\"${category:-General}\",\"schedule\":$([ -n "$schedule" ] && printf '%s' "\"$schedule\"" || echo null),\"content\":$escaped_content,\"content_hash\":\"$content_hash\"}"
+
+      custom_count=$((custom_count + 1))
+    done
+  fi
+  workflows_json="$workflows_json]"
+
+  # Build run counts from system/runs/
+  local run_counts="{}"
+  if [ -d "$CLAWFLOWS_DIR/system/runs" ]; then
+    local counts_json="{"
+    local count_first=true
+    for date_dir in "$CLAWFLOWS_DIR/system/runs"/*/; do
+      [ -d "$date_dir" ] || continue
+      for wf_dir in "$date_dir"*/; do
+        [ -d "$wf_dir" ] || continue
+        local wf_name
+        wf_name="$(basename "$wf_dir")"
+        local run_count
+        run_count="$(find "$CLAWFLOWS_DIR/system/runs" -path "*/$wf_name/*" -type f 2>/dev/null | wc -l | tr -d ' ')"
+        if [ "$count_first" = true ]; then
+          count_first=false
+        else
+          counts_json="$counts_json,"
+        fi
+        counts_json="$counts_json\"$wf_name\":$run_count"
+      done
+    done
+    counts_json="$counts_json}"
+    run_counts="$counts_json"
+  fi
+
+  # Send to hub
+  local response
+  response="$(curl -sf -X POST "$HUB_URL/api/sync" \
+    -H "Authorization: Bearer $token" \
+    -H "Content-Type: application/json" \
+    -d "{\"workflows\":$workflows_json,\"run_counts\":$run_counts}")" || die "Sync failed. Check your connection and token."
+
+  local total created updated
+  total="$(printf '%s' "$response" | grep -o '"total":[0-9]*' | sed 's/"total"://')"
+  created="$(printf '%s' "$response" | grep -o '"created":[0-9]*' | sed 's/"created"://')"
+  updated="$(printf '%s' "$response" | grep -o '"updated":[0-9]*' | sed 's/"updated"://')"
+
+  echo ""
+  echo "  ✅ Synced $custom_count workflow(s) to the hub"
+  [ "${created:-0}" -gt 0 ] && echo "     $created new" || true
+  [ "${updated:-0}" -gt 0 ] && echo "     $updated updated" || true
+  echo ""
+}
+
+cmd_web_install() {
+  local ref="$1"
+
+  # Parse @username/workflow-name
+  local agent_name workflow_name
+  agent_name="$(printf '%s' "$ref" | sed 's/^@//' | cut -d/ -f1)"
+  workflow_name="$(printf '%s' "$ref" | cut -d/ -f2)"
+
+  [ -n "$agent_name" ] && [ -n "$workflow_name" ] || die "usage: clawflows web install @username/workflow-name"
+
+  echo "Installing @$agent_name/$workflow_name from ClawFlows Web..."
+
+  # Fetch workflow from hub
+  local response
+  response="$(curl -sf "$HUB_URL/api/workflows/$agent_name/$workflow_name")" || die "Workflow not found: @$agent_name/$workflow_name"
+
+  local content version name
+  content="$(printf '%s' "$response" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("content",""))' 2>/dev/null)"
+  version="$(printf '%s' "$response" | grep -o '"version":[0-9]*' | sed 's/"version"://')"
+  name="$(printf '%s' "$response" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("name",""))' 2>/dev/null)"
+
+  [ -n "$content" ] || die "Workflow has no content. The author hasn't synced it yet."
+
+  # Save to custom/ directory
+  local target_dir="$CUSTOM_DIR/$workflow_name"
+  mkdir -p "$target_dir"
+  printf '%s' "$content" > "$target_dir/WORKFLOW.md"
+
+  # Track installation
+  local installed
+  installed="$(_hub_get_installed)"
+  # Update installed.json with python3
+  installed="$(printf '%s' "$installed" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+d['@$agent_name/$workflow_name'] = {'version': ${version:-1}, 'installed_at': '$(date -u +%Y-%m-%dT%H:%M:%SZ)'}
+print(json.dumps(d))
+" 2>/dev/null || echo "$installed")"
+  _hub_save_installed "$installed"
+
+  echo ""
+  echo "  ✅ Installed $name (@$agent_name/$workflow_name) v${version:-1}"
+  echo "     Saved to: $target_dir/WORKFLOW.md"
+  echo ""
+  echo "  Enable it with: clawflows enable $workflow_name"
+  echo ""
+}
+
+cmd_web_update() {
+  local token
+  token="$(_hub_get_token)"
+
+  local installed
+  installed="$(_hub_get_installed)"
+
+  # Build installed list for the API
+  local installed_json
+  installed_json="$(printf '%s' "$installed" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+result = []
+for key, val in d.items():
+    parts = key.lstrip('@').split('/')
+    if len(parts) == 2:
+        result.append({'agent': parts[0], 'slug': parts[1], 'version': val.get('version', 1)})
+print(json.dumps(result))
+" 2>/dev/null || echo "[]")"
+
+  if [ "$installed_json" = "[]" ]; then
+    echo "No web-installed workflows to check."
+    return
+  fi
+
+  echo "Checking for updates..."
+
+  local response
+  response="$(curl -sf -X POST "$HUB_URL/api/updates" \
+    -H "Content-Type: application/json" \
+    -d "{\"installed\":$installed_json}")" || die "Could not reach ClawFlows.ai"
+
+  local updates
+  updates="$(printf '%s' "$response" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+for u in d.get('updates', []):
+    print(f\"  @{u['agent']}/{u['slug']}: v{u['installed_version']} → v{u['latest_version']}\")
+    for c in u.get('changelogs', []):
+        print(f\"    v{c['version']}: {c['changelog']}\")
+if not d.get('updates'):
+    print('  All workflows are up to date.')
+" 2>/dev/null)"
+
+  echo ""
+  echo "$updates"
+  echo ""
+
+  # Check if there are actual updates
+  local has_updates
+  has_updates="$(printf '%s' "$response" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+print('yes' if d.get('updates') else 'no')
+" 2>/dev/null)"
+
+  if [ "$has_updates" = "yes" ]; then
+    echo "  To update a workflow, re-install it:"
+    echo "    clawflows web install @username/workflow-name"
+    echo ""
+  fi
+}
+
+cmd_web() {
+  local subcmd="${1:-}"
+  shift 2>/dev/null || true
+
+  case "$subcmd" in
+    login)    cmd_web_login ;;
+    logout)   cmd_web_logout ;;
+    whoami)   cmd_web_whoami ;;
+    sync)     cmd_web_sync ;;
+    install)  [ -n "${1:-}" ] || die "usage: clawflows web install @username/workflow-name"; cmd_web_install "$1" ;;
+    update)   cmd_web_update ;;
+    *)
+      echo "ClawFlows Web commands:"
+      echo ""
+      echo "  clawflows web login                        Sign in to ClawFlows Web"
+      echo "  clawflows web sync                         Push your workflows to ClawFlows.ai"
+      echo "  clawflows web install @user/workflow-name   Install a workflow from ClawFlows.ai"
+      echo "  clawflows web update                       Check for updates to web-installed workflows"
+      echo "  clawflows web whoami                       Check your login status"
+      echo "  clawflows web logout                       Sign out"
+      echo ""
+      ;;
+  esac
+}
+
 # ── Main ────────────────────────────────────────────────────────────────────
 
 [ $# -ge 1 ] || { cmd_help; exit 0; }
@@ -2054,6 +2428,7 @@ case "$1" in
   uninstall) cmd_uninstall ;;
   sync-agent) cmd_sync ;;
   doctor)    cmd_doctor ;;
+  web)       cmd_web "${2:-}" "${3:-}" ;;
   help|--help|-h) cmd_help ;;
   *)         cmd_help ;;
 esac
