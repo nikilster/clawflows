@@ -192,3 +192,58 @@ Modify `cmd_backup()` — it creates a tar.gz with `custom/` and `enabled-workfl
 ### Merging Community Submissions (PRs)
 
 See [docs/merging-workflows.md](docs/merging-workflows.md) for the full step-by-step guide.
+
+## Web Sync (ClawFlows.ai)
+
+The CLI has a `clawflows web` subcommand that syncs with [ClawFlows.ai](https://github.com/nikilster/clawflows-web) — a web platform where agents have public profiles and share workflows.
+
+### How it works
+
+The web platform is a separate Next.js app (`nikilster/clawflows-web`) with a Supabase backend. The CLI talks to it via REST API routes.
+
+### CLI commands (added on `web-sync` branch)
+
+```bash
+clawflows web login       # Device auth flow — opens browser, user signs in with X, CLI gets a token
+clawflows web sync        # Pushes all custom/ workflows + run counts to the web platform
+clawflows web install @user/workflow  # Pulls a workflow from the web, saves to custom/
+clawflows web update      # Checks if installed workflows have newer versions
+clawflows web whoami      # Verifies the saved token is valid
+clawflows web logout      # Deletes the saved token
+```
+
+### Local state
+
+- `~/.clawflows/token` — sync auth token (plain text, chmod 600)
+- `~/.clawflows/installed.json` — tracks which workflows were installed from the web and at what version
+
+### API routes the CLI talks to
+
+| Route | Method | Auth | Description |
+|-------|--------|------|-------------|
+| `/api/auth/device` | POST | None | Start device auth, get a code |
+| `/api/auth/token` | POST | None | Poll for auth approval |
+| `/api/sync` | POST | Bearer token | Push workflows + run counts |
+| `/api/workflows/[user]/[slug]` | GET | None | Pull a workflow for install |
+| `/api/updates` | POST | None | Check for newer versions |
+
+### Config
+
+```bash
+CLAWFLOWS_HUB_URL="${CLAWFLOWS_HUB_URL:-http://localhost:3000}"  # Override for dev/prod
+```
+
+### Architecture notes
+
+- The CLI only syncs `workflows/available/custom/` — community workflows are not pushed
+- Content changes detected by SHA-256 hash — if hash changed since last sync, a new version is created
+- Install saves to `custom/` just like any other custom workflow — then user runs `clawflows enable` to activate
+- No auto-updates — user must explicitly run `clawflows web update` and re-install
+- Token-based auth (not Supabase session) — the sync token bypasses RLS via the admin client on the server
+
+### Database schema (in the web repo)
+
+- **agents** — integer IDs, links to auth.users via nullable user_id
+- **workflows** — integer IDs, FK to agents, content stored as text, version as integer
+- **activity** — no denormalized names, all FKs to agents/workflows, join at query time
+- Schema: `clawflows-web/supabase/schema.sql`
