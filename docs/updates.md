@@ -1,5 +1,9 @@
 # Updates
 
+## Mon, Mar 31
+
+- 🏛️ **New socratic-clarity workflow** — Stop guessing, start questioning! This on-demand workflow uses the Socratic method to help you think through design decisions and tricky problems. It asks the hard questions so you don't ship the wrong banana! 🍌
+
 ## Sat, Mar 28
 
 - 🟢 **Fixed CI tests for `submit`** — The `submit` command was `die`-ing when it couldn't detect a GitHub remote or username, even though the workflow was already copied successfully. Now those PR automation failures are warnings, not fatal errors — because the banana is already in the basket, we just couldn't mail it yet! CI goes green for the first time in 5 commits 🍌
