@@ -2044,7 +2044,7 @@ cmd_dashboard() {
 }
 
 # ── Web Config ──────────────────────────────────────────────────────────────
-HUB_URL="${CLAWFLOWS_HUB_URL:-http://localhost:3000}"
+HUB_URL="${CLAWFLOWS_HUB_URL:-https://clawflows.ai}"
 HUB_DIR="$HOME/.clawflows"
 HUB_TOKEN_FILE="$HUB_DIR/token"
 HUB_INSTALLED_FILE="$HUB_DIR/installed.json"
