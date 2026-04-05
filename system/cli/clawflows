@@ -2106,67 +2106,18 @@ cmd_web_login() {
     return
   fi
 
-  echo "Starting ClawFlows Web login..."
+  echo ""
+  echo "  To log in, sign up at clawflows.ai and you'll get a login token."
+  echo ""
+  echo "    $HUB_URL"
+  echo ""
+  echo "  Then run:"
+  echo ""
+  echo "    clawflows web login <your-token>"
   echo ""
 
-  # Request a device code
-  local response
-  response="$(curl -sf -X POST "$HUB_URL/api/auth/device" \
-    -H "Content-Type: application/json" \
-    -d '{}')" || die "Could not reach ClawFlows Web at $HUB_URL"
-
-  local device_code user_code verification_url
-  device_code="$(printf '%s' "$response" | grep -o '"device_code":"[^"]*"' | sed 's/"device_code":"//;s/"//')"
-  user_code="$(printf '%s' "$response" | grep -o '"user_code":"[^"]*"' | sed 's/"user_code":"//;s/"//')"
-  verification_url="$(printf '%s' "$response" | grep -o '"verification_url":"[^"]*"' | sed 's/"verification_url":"//;s/"//')"
-
-  [ -n "$device_code" ] || die "Failed to get device code from hub"
-
-  echo "  Open this URL in your browser:"
-  echo ""
-  echo "    $verification_url"
-  echo ""
-  echo "  Your code: $user_code"
-  echo ""
-
-  # Try to open browser
-  open "$verification_url" 2>/dev/null || true
-
-  echo "  Waiting for authorization..."
-
-  # Poll for token
-  local attempts=0
-  local max_attempts=150  # 5 minutes at 2-second intervals
-  while [ $attempts -lt $max_attempts ]; do
-    local poll_response
-    poll_response="$(curl -sf -X POST "$HUB_URL/api/auth/token" \
-      -H "Content-Type: application/json" \
-      -d "{\"device_code\":\"$device_code\"}")" || true
-
-    local poll_status
-    poll_status="$(printf '%s' "$poll_response" | grep -o '"status":"[^"]*"' | sed 's/"status":"//;s/"//')"
-
-    if [ "$poll_status" = "approved" ]; then
-      local token agent_username
-      token="$(printf '%s' "$poll_response" | grep -o '"access_token":"[^"]*"' | sed 's/"access_token":"//;s/"//')"
-      agent_username="$(printf '%s' "$poll_response" | grep -o '"agent_username":"[^"]*"' | sed 's/"agent_username":"//;s/"//')"
-
-      _hub_save_token "$token"
-      echo ""
-      echo "  ✅ Logged in as @$agent_username"
-      echo ""
-      return
-    fi
-
-    if [ "$poll_status" = "expired" ] || [ -z "$poll_status" ]; then
-      break
-    fi
-
-    sleep 2
-    attempts=$((attempts + 1))
-  done
-
-  die "Login timed out. Try again with: clawflows web login"
+  # Try to open the site
+  open "$HUB_URL" 2>/dev/null || true
 }
 
 cmd_web_logout() {
