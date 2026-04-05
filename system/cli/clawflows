@@ -188,20 +188,19 @@ _find_workflow() {
   fi
 }
 
-# Build a line for a workflow: emoji + name + description
+# Build a line for a workflow: emoji + name + source
 _workflow_line() {
   local dir="$1"
-  local name emoji desc label
+  local source="${2:-}"
+  local name emoji label
   name="$(basename "$dir")"
   emoji=""
-  desc=""
   if [ -f "$dir/WORKFLOW.md" ]; then
     emoji="$(get_field "$dir/WORKFLOW.md" emoji)"
-    desc="$(get_field "$dir/WORKFLOW.md" description)"
   fi
   label="${emoji:+$emoji }$name"
-  if [ -n "$desc" ]; then
-    printf "    %-40s %s" "$label" "$desc"
+  if [ -n "$source" ]; then
+    printf "    %-40s %s" "$label" "$source"
   else
     printf "    %s" "$label"
   fi
@@ -431,12 +430,8 @@ $description
 cmd_list() {
   local filter="${1:-all}"
   local name dir found=false
-  local custom_enabled=()
-  local custom_available=()
-  local installed_enabled=()
-  local installed_available=()
-  local community_enabled=()
-  local community_available=()
+  local enabled_lines=()
+  local available_lines=()
   local seen_names=""
 
   # Collect custom workflows
@@ -448,9 +443,9 @@ cmd_list() {
     found=true
 
     if [ -L "$ENABLED_DIR/$name" ] || [ -d "$ENABLED_DIR/$name" ]; then
-      custom_enabled+=("$(_workflow_line "$dir")")
+      enabled_lines+=("$(_workflow_line "$dir" "custom")")
     else
-      custom_available+=("$(_workflow_line "$dir")")
+      available_lines+=("$(_workflow_line "$dir" "custom")")
     fi
   done
 
@@ -458,6 +453,8 @@ cmd_list() {
   if [ -d "$INSTALLED_DIR" ]; then
     for agent_dir in "$INSTALLED_DIR"/*/; do
       [ -d "$agent_dir" ] || continue
+      local agent_name
+      agent_name="$(basename "$agent_dir")"
       for dir in "$agent_dir"*/; do
         [ -d "$dir" ] || continue
         name="$(basename "$dir")"
@@ -468,66 +465,33 @@ cmd_list() {
         found=true
 
         if [ -L "$ENABLED_DIR/$name" ] || [ -d "$ENABLED_DIR/$name" ]; then
-          installed_enabled+=("$(_workflow_line "$dir")")
+          enabled_lines+=("$(_workflow_line "$dir" "@$agent_name")")
         else
-          installed_available+=("$(_workflow_line "$dir")")
+          available_lines+=("$(_workflow_line "$dir" "@$agent_name")")
         fi
       done
     done
   fi
 
-  # Collect community workflows (skip names already seen)
-  for dir in "$COMMUNITY_DIR"/*/; do
-    [ -d "$dir" ] || continue
-    name="$(basename "$dir")"
-    case "$seen_names" in
-      *" $name "*) continue ;;
-    esac
-    found=true
-
-    if [ -L "$ENABLED_DIR/$name" ] || [ -d "$ENABLED_DIR/$name" ]; then
-      community_enabled+=("$(_workflow_line "$dir")")
-    else
-      community_available+=("$(_workflow_line "$dir")")
-    fi
-  done
-
   if ! $found; then
     echo ""
     echo "  No workflows found."
     echo ""
-    echo "  Make sure clawflows is installed correctly:"
-    echo "    curl -fsSL https://raw.githubusercontent.com/nikilster/clawflows/main/system/install.sh | bash"
+    echo "  Browse workflows at https://clawflows.ai"
     echo ""
     return
   fi
 
   if [ "$filter" = "all" ] || [ "$filter" = "enabled" ]; then
-    if [ ${#custom_enabled[@]} -gt 0 ]; then
+    if [ ${#enabled_lines[@]} -gt 0 ]; then
       echo ""
-      echo "  Your Workflows — Enabled (${#custom_enabled[@]})"
-      echo "  ──────────────────────────"
-      for line in "${custom_enabled[@]}"; do
+      echo "  Enabled (${#enabled_lines[@]})"
+      echo "  ──────────"
+      for line in "${enabled_lines[@]}"; do
         echo "$line"
       done
     fi
-    if [ ${#installed_enabled[@]} -gt 0 ]; then
-      echo ""
-      echo "  Installed — Enabled (${#installed_enabled[@]})"
-      echo "  ────────────────────────"
-      for line in "${installed_enabled[@]}"; do
-        echo "$line"
-      done
-    fi
-    if [ ${#community_enabled[@]} -gt 0 ]; then
-      echo ""
-      echo "  Community — Enabled (${#community_enabled[@]})"
-      echo "  ──────────────────────"
-      for line in "${community_enabled[@]}"; do
-        echo "$line"
-      done
-    fi
-    if [ "$filter" = "enabled" ] && [ ${#custom_enabled[@]} -eq 0 ] && [ ${#installed_enabled[@]} -eq 0 ] && [ ${#community_enabled[@]} -eq 0 ]; then
+    if [ "$filter" = "enabled" ] && [ ${#enabled_lines[@]} -eq 0 ]; then
       echo ""
       echo "  No workflows enabled yet."
       echo "  Run 'clawflows list' to see what's available."
@@ -535,27 +499,11 @@ cmd_list() {
   fi
 
   if [ "$filter" = "all" ] || [ "$filter" = "available" ]; then
-    if [ ${#custom_available[@]} -gt 0 ]; then
+    if [ ${#available_lines[@]} -gt 0 ]; then
       echo ""
-      echo "  Your Workflows — Available (${#custom_available[@]})"
-      echo "  ────────────────────────────"
-      for line in "${custom_available[@]}"; do
-        echo "$line"
-      done
-    fi
-    if [ ${#installed_available[@]} -gt 0 ]; then
-      echo ""
-      echo "  Installed — Available (${#installed_available[@]})"
-      echo "  ──────────────────────────"
-      for line in "${installed_available[@]}"; do
-        echo "$line"
-      done
-    fi
-    if [ ${#community_available[@]} -gt 0 ]; then
-      echo ""
-      echo "  Community — Available (${#community_available[@]})"
-      echo "  ────────────────────────"
-      for line in "${community_available[@]}"; do
+      echo "  Available (${#available_lines[@]})"
+      echo "  ─────────────"
+      for line in "${available_lines[@]}"; do
         echo "$line"
       done
     fi
