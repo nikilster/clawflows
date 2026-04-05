@@ -20,6 +20,7 @@ AGENTS_MD="${AGENTS_MD:-$_oc_workspace/AGENTS.md}"
 BACKUP_DIR="${BACKUP_DIR:-$_oc_workspace/clawflows-backups}"
 COMMUNITY_DIR="$CLAWFLOWS_DIR/workflows/available/community"
 CUSTOM_DIR="$CLAWFLOWS_DIR/workflows/available/custom"
+INSTALLED_DIR="$CLAWFLOWS_DIR/workflows/available/installed"
 ENABLED_DIR="$CLAWFLOWS_DIR/workflows/enabled"
 SUBMISSIONS_DIR="$CLAWFLOWS_DIR/community-submissions"
 BIN_TARGET="$HOME/.local/bin/clawflows"
@@ -170,11 +171,18 @@ get_field() {
   ' "$file"
 }
 
-# Find workflow source: custom/ takes priority over community/
+# Find workflow source: custom/ takes priority, then installed/, then community/
 _find_workflow() {
   local name="$1"
   if [ -d "$CUSTOM_DIR/$name" ]; then
     echo "$CUSTOM_DIR/$name"
+  elif [ -d "$INSTALLED_DIR" ]; then
+    # Search installed/*/name
+    for agent_dir in "$INSTALLED_DIR"/*/; do
+      [ -d "$agent_dir$name" ] && echo "$agent_dir$name" && return
+    done
+    # Fall through to community
+    [ -d "$COMMUNITY_DIR/$name" ] && echo "$COMMUNITY_DIR/$name"
   elif [ -d "$COMMUNITY_DIR/$name" ]; then
     echo "$COMMUNITY_DIR/$name"
   fi
@@ -425,6 +433,8 @@ cmd_list() {
   local name dir found=false
   local custom_enabled=()
   local custom_available=()
+  local installed_enabled=()
+  local installed_available=()
   local community_enabled=()
   local community_available=()
   local seen_names=""
@@ -444,7 +454,29 @@ cmd_list() {
     fi
   done
 
-  # Collect community workflows (skip names already seen in custom/)
+  # Collect installed workflows (from web)
+  if [ -d "$INSTALLED_DIR" ]; then
+    for agent_dir in "$INSTALLED_DIR"/*/; do
+      [ -d "$agent_dir" ] || continue
+      for dir in "$agent_dir"*/; do
+        [ -d "$dir" ] || continue
+        name="$(basename "$dir")"
+        case "$seen_names" in
+          *" $name "*) continue ;;
+        esac
+        seen_names="$seen_names $name "
+        found=true
+
+        if [ -L "$ENABLED_DIR/$name" ] || [ -d "$ENABLED_DIR/$name" ]; then
+          installed_enabled+=("$(_workflow_line "$dir")")
+        else
+          installed_available+=("$(_workflow_line "$dir")")
+        fi
+      done
+    done
+  fi
+
+  # Collect community workflows (skip names already seen)
   for dir in "$COMMUNITY_DIR"/*/; do
     [ -d "$dir" ] || continue
     name="$(basename "$dir")"
@@ -479,6 +511,14 @@ cmd_list() {
         echo "$line"
       done
     fi
+    if [ ${#installed_enabled[@]} -gt 0 ]; then
+      echo ""
+      echo "  Installed — Enabled (${#installed_enabled[@]})"
+      echo "  ────────────────────────"
+      for line in "${installed_enabled[@]}"; do
+        echo "$line"
+      done
+    fi
     if [ ${#community_enabled[@]} -gt 0 ]; then
       echo ""
       echo "  Community — Enabled (${#community_enabled[@]})"
@@ -487,7 +527,7 @@ cmd_list() {
         echo "$line"
       done
     fi
-    if [ "$filter" = "enabled" ] && [ ${#custom_enabled[@]} -eq 0 ] && [ ${#community_enabled[@]} -eq 0 ]; then
+    if [ "$filter" = "enabled" ] && [ ${#custom_enabled[@]} -eq 0 ] && [ ${#installed_enabled[@]} -eq 0 ] && [ ${#community_enabled[@]} -eq 0 ]; then
       echo ""
       echo "  No workflows enabled yet."
       echo "  Run 'clawflows list' to see what's available."
@@ -500,6 +540,14 @@ cmd_list() {
       echo "  Your Workflows — Available (${#custom_available[@]})"
       echo "  ────────────────────────────"
       for line in "${custom_available[@]}"; do
+        echo "$line"
+      done
+    fi
+    if [ ${#installed_available[@]} -gt 0 ]; then
+      echo ""
+      echo "  Installed — Available (${#installed_available[@]})"
+      echo "  ──────────────────────────"
+      for line in "${installed_available[@]}"; do
         echo "$line"
       done
     fi
@@ -2244,6 +2292,55 @@ cmd_web_sync() {
   echo "  ✅ Synced $custom_count workflow(s) to the hub"
   [ "${created:-0}" -gt 0 ] && echo "     $created new" || true
   [ "${updated:-0}" -gt 0 ] && echo "     $updated updated" || true
+
+  # Process pending installs from web
+  local install_count=0
+  local pending
+  pending="$(printf '%s' "$response" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+for item in d.get('pending_installs', []):
+    print(json.dumps(item))
+" 2>/dev/null)" || true
+
+  if [ -n "$pending" ]; then
+    while IFS= read -r item; do
+      [ -n "$item" ] || continue
+      local agent slug name content version
+      agent="$(printf '%s' "$item" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("agent",""))' 2>/dev/null)"
+      slug="$(printf '%s' "$item" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("slug",""))' 2>/dev/null)"
+      name="$(printf '%s' "$item" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("name",""))' 2>/dev/null)"
+      content="$(printf '%s' "$item" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("content",""))' 2>/dev/null)"
+      version="$(printf '%s' "$item" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("version",1))' 2>/dev/null)"
+
+      [ -n "$agent" ] && [ -n "$slug" ] && [ -n "$content" ] || continue
+
+      # Save to installed/agent/slug/
+      local target_dir="$INSTALLED_DIR/$agent/$slug"
+      mkdir -p "$target_dir"
+      printf '%s' "$content" > "$target_dir/WORKFLOW.md"
+
+      # Auto-enable
+      if [ ! -L "$ENABLED_DIR/$slug" ] && [ ! -d "$ENABLED_DIR/$slug" ]; then
+        ln -s "$target_dir" "$ENABLED_DIR/$slug"
+      fi
+
+      # Track in installed.json
+      local installed
+      installed="$(_hub_get_installed)"
+      installed="$(printf '%s' "$installed" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+d['@$agent/$slug'] = {'version': $version, 'installed_at': '$(date -u +%Y-%m-%dT%H:%M:%SZ)'}
+print(json.dumps(d))
+" 2>/dev/null || echo "$installed")"
+      _hub_save_installed "$installed"
+
+      install_count=$((install_count + 1))
+    done <<< "$pending"
+  fi
+
+  [ "$install_count" -gt 0 ] && echo "     $install_count installed from web" || true
   echo ""
 }
 
@@ -2270,8 +2367,8 @@ cmd_web_install() {
 
   [ -n "$content" ] || die "Workflow has no content. The author hasn't synced it yet."
 
-  # Save to custom/ directory
-  local target_dir="$CUSTOM_DIR/$workflow_name"
+  # Save to installed/username/workflow/ directory
+  local target_dir="$INSTALLED_DIR/$agent_name/$workflow_name"
   mkdir -p "$target_dir"
   printf '%s' "$content" > "$target_dir/WORKFLOW.md"
 
