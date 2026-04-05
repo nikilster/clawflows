@@ -78,10 +78,9 @@ cmd_help() {
   printf "\n${H}🔧 Managing${R}\n"
   printf "  ${CMD}enable ${M}<name>${R}        Turn on a workflow (symlinks to enabled/)\n"
   printf "  ${CMD}disable ${M}<name>${R}       Turn off a workflow (removes symlink)\n"
-  printf "  ${CMD}edit ${M}<name>${R}          Copy a community workflow to custom/ for editing\n"
+  printf "  ${CMD}edit ${M}<name>${R}          Copy an installed workflow to custom/ for editing\n"
   printf "  ${CMD}open ${M}<name>${R}          Open a workflow in your editor\n"
   printf "  ${CMD}validate ${M}<name>${R}      Check a workflow has required fields\n"
-  printf "  ${CMD}submit ${M}<name>${R}        Submit a custom workflow for community review\n"
 
   printf "\n${H}📤 Sharing${R}\n"
   printf "  ${CMD}share ${M}<name>${R}         Show shareable text for a workflow\n"
@@ -101,7 +100,7 @@ cmd_help() {
   printf "  ${CMD}web logout${R}            Sign out from the hub\n"
 
   printf "\n${H}🔄 Maintenance${R}\n"
-  printf "  ${CMD}update${R}               Pull the latest workflows from GitHub\n"
+  printf "  ${CMD}update${R}               Update clawflows to the latest version\n"
   printf "  ${CMD}sync-agent${R}           Refresh your agent's workflow list in AGENTS.md\n"
   printf "  ${CMD}doctor${R}               Check for workflow issues (broken symlinks, drift)\n"
   printf "  ${CMD}uninstall${R}            Remove clawflows and clean up\n"
@@ -118,19 +117,16 @@ cmd_help() {
   printf "  ${CMD}clawflows open send-morning-briefing${R}    ${M}Open in your editor${R}\n"
   printf "  ${CMD}clawflows disable check-x${R}               ${M}Turn off X/Twitter workflow${R}\n"
   printf "  ${CMD}clawflows validate my-workflow${R}          ${M}Check your workflow is valid${R}\n"
-  printf "  ${CMD}clawflows submit my-workflow${R}            ${M}Share your workflow with the community${R}\n"
-  printf "  ${CMD}clawflows update${R}                        ${M}Get new community workflows${R}\n"
 
   printf "\n${H}How it works${R}\n"
   printf "  Workflows live in ~/.openclaw/workspace/clawflows/workflows/\n"
-  printf "  ${M}•${R} available/community/  — from the repo (updated via git)\n"
-  printf "  ${M}•${R} available/custom/     — your own workflows (gitignored)\n"
+  printf "  ${M}•${R} available/custom/     — your own workflows\n"
+  printf "  ${M}•${R} available/installed/  — installed from clawflows.ai\n"
   printf "  ${M}•${R} enabled/              — symlinks to active workflows\n"
   printf "\n  When you enable a workflow, a symlink is created. Disable removes\n"
-  printf "  the symlink — your custom workflows are never deleted.\n"
-  printf "\n  Use 'edit' to copy a community workflow to custom/ so you\n"
-  printf "  can modify it without losing changes on update. Use 'open' to\n"
-  printf "  open any workflow in your editor.\n"
+  printf "  the symlink — your workflows are never deleted.\n"
+  printf "\n  Use 'edit' to copy an installed workflow to custom/ so you\n"
+  printf "  can modify it. Use 'open' to open any workflow in your editor.\n"
   echo ""
 }
 
@@ -171,20 +167,15 @@ get_field() {
   ' "$file"
 }
 
-# Find workflow source: custom/ takes priority, then installed/, then community/
+# Find workflow source: custom/ takes priority, then installed/
 _find_workflow() {
   local name="$1"
   if [ -d "$CUSTOM_DIR/$name" ]; then
     echo "$CUSTOM_DIR/$name"
   elif [ -d "$INSTALLED_DIR" ]; then
-    # Search installed/*/name
     for agent_dir in "$INSTALLED_DIR"/*/; do
       [ -d "$agent_dir$name" ] && echo "$agent_dir$name" && return
     done
-    # Fall through to community
-    [ -d "$COMMUNITY_DIR/$name" ] && echo "$COMMUNITY_DIR/$name"
-  elif [ -d "$COMMUNITY_DIR/$name" ]; then
-    echo "$COMMUNITY_DIR/$name"
   fi
 }
 
@@ -242,7 +233,7 @@ _create_from_json() {
   emoji="${emoji:-🔧}"
 
   # Check if already exists
-  if [ -d "$CUSTOM_DIR/$name" ] || [ -d "$COMMUNITY_DIR/$name" ]; then
+  if [ -d "$CUSTOM_DIR/$name" ] || [ -n "$(_find_workflow "$name")" ]; then
     die "Workflow '$name' already exists"
   fi
 
@@ -319,7 +310,7 @@ cmd_create() {
       if ! echo "$name" | grep -qE '^(activate|process|check|build|send|sync|track|draft|review|plan|prep|curate|summarize|backup|clean|rotate|find)-'; then
         echo "  💡 Tip: names usually start with a verb like check-$name or track-$name"
       fi
-      if [ -d "$CUSTOM_DIR/$name" ] || [ -d "$COMMUNITY_DIR/$name" ]; then
+      if [ -d "$CUSTOM_DIR/$name" ] || [ -n "$(_find_workflow "$name")" ]; then
         echo "  ⚠️  Workflow '$name' already exists"
         name=""
         continue
@@ -593,9 +584,11 @@ cmd_edit() {
     return
   fi
 
-  # In community? Copy to custom
-  if [ -d "$COMMUNITY_DIR/$name" ]; then
-    cp -r "$COMMUNITY_DIR/$name" "$CUSTOM_DIR/$name"
+  # Installed workflow? Copy to custom so they can edit it
+  local source_dir
+  source_dir="$(_find_workflow "$name")"
+  if [ -n "$source_dir" ]; then
+    cp -r "$source_dir" "$CUSTOM_DIR/$name"
     echo "copied to custom/: $name"
 
     # If it was enabled, update the symlink to point to custom/
@@ -607,7 +600,6 @@ cmd_edit() {
 
     echo ""
     echo "  Edit: $CUSTOM_DIR/$name/WORKFLOW.md"
-    echo "  Your changes won't be overwritten by updates."
     return
   fi
 
@@ -617,20 +609,10 @@ cmd_edit() {
 cmd_open() {
   local name="$1"
   validate_workflow_name "$name"
-  local wf_file=""
-
-  # Find the workflow file (custom takes priority)
-  if [ -d "$CUSTOM_DIR/$name" ]; then
-    wf_file="$CUSTOM_DIR/$name/WORKFLOW.md"
-  elif [ -d "$COMMUNITY_DIR/$name" ]; then
-    # It's a community workflow - suggest editing first
-    echo "note: '$name' is a community workflow"
-    echo "      Changes will be lost on update. Run 'clawflows edit $name' first to make it editable."
-    echo ""
-    wf_file="$COMMUNITY_DIR/$name/WORKFLOW.md"
-  else
-    die "workflow '$name' not found"
-  fi
+  local source_dir
+  source_dir="$(_find_workflow "$name")"
+  [ -n "$source_dir" ] || die "workflow '$name' not found"
+  local wf_file="$source_dir/WORKFLOW.md"
 
   [ -f "$wf_file" ] || die "WORKFLOW.md not found at $wf_file"
 
@@ -790,7 +772,7 @@ cmd_doctor() {
     target="$(readlink "$entry")"
     local name
     name="$(basename "$entry")"
-    if [[ "$target" != *"/available/custom/"* ]] && [[ "$target" != *"/available/community/"* ]]; then
+    if [[ "$target" != *"/available/custom/"* ]] && [[ "$target" != *"/available/installed/"* ]] && [[ "$target" != *"/available/community/"* ]]; then
       echo "  ⚠️  $name symlink points outside available/: $target"
       issues=$((issues + 1))
     fi
@@ -1299,9 +1281,6 @@ cmd_submit() {
 
   # Check if workflow exists in custom/
   if [ ! -d "$CUSTOM_DIR/$name" ]; then
-    if [ -d "$COMMUNITY_DIR/$name" ]; then
-      die "workflow '$name' is already a community workflow"
-    fi
     die "workflow '$name' not found in custom/. Create one with: clawflows create"
   fi
 
@@ -1608,13 +1587,8 @@ cmd_run() {
   # Find the workflow
   if [ -L "$ENABLED_DIR/$name" ] || [ -d "$ENABLED_DIR/$name" ]; then
     wf_file="$ENABLED_DIR/$name/WORKFLOW.md"
-  elif [ -d "$CUSTOM_DIR/$name" ]; then
-    # Auto-enable if in custom but not enabled
-    echo "Enabling $name..."
-    cmd_enable "$name"
-    wf_file="$ENABLED_DIR/$name/WORKFLOW.md"
-  elif [ -d "$COMMUNITY_DIR/$name" ]; then
-    # Auto-enable if in community but not enabled
+  elif [ -n "$(_find_workflow "$name")" ]; then
+    # Auto-enable if not enabled
     echo "Enabling $name..."
     cmd_enable "$name"
     wf_file="$ENABLED_DIR/$name/WORKFLOW.md"
@@ -1781,23 +1755,29 @@ _build_dashboard_json() {
 custom|$enabled|${dir%/}/WORKFLOW.md"
   done
 
-  # Community workflows (skip overridden by custom)
-  for dir in "$COMMUNITY_DIR"/*/; do
-    [ -d "$dir" ] || continue
-    local name
-    name="$(basename "$dir")"
-    [ -f "$dir/WORKFLOW.md" ] || continue
-    case "$seen_names" in
-      *" $name "*) continue ;;
-    esac
+  # Installed workflows (skip overridden by custom)
+  if [ -d "$INSTALLED_DIR" ]; then
+    for agent_dir in "$INSTALLED_DIR"/*/; do
+      [ -d "$agent_dir" ] || continue
+      for dir in "$agent_dir"*/; do
+        [ -d "$dir" ] || continue
+        local name
+        name="$(basename "$dir")"
+        [ -f "$dir/WORKFLOW.md" ] || continue
+        case "$seen_names" in
+          *" $name "*) continue ;;
+        esac
+        seen_names="$seen_names $name "
 
-    local enabled="false"
-    if [ -L "$ENABLED_DIR/$name" ] || [ -d "$ENABLED_DIR/$name" ]; then
-      enabled="true"
-    fi
-    manifest="$manifest
-community|$enabled|${dir%/}/WORKFLOW.md"
-  done
+        local enabled="false"
+        if [ -L "$ENABLED_DIR/$name" ] || [ -d "$ENABLED_DIR/$name" ]; then
+          enabled="true"
+        fi
+        manifest="$manifest
+installed|$enabled|${dir%/}/WORKFLOW.md"
+      done
+    done
+  fi
 
   # No workflows? Fast path
   if [ -z "$manifest" ]; then
@@ -2150,6 +2130,30 @@ cmd_web_sync() {
   local token
   token="$(_hub_get_token)"
   [ -n "$token" ] || die "Not logged in. Run: clawflows web login"
+
+  # One-time migration: move enabled community workflows to installed/clawflowsagent/
+  if [ -d "$COMMUNITY_DIR" ]; then
+    local migrated=0
+    for link in "$ENABLED_DIR"/*/; do
+      [ -L "${link%/}" ] || continue
+      local target
+      target="$(readlink "${link%/}")"
+      case "$target" in
+        *"/available/community/"*)
+          local wf_name
+          wf_name="$(basename "${link%/}")"
+          local dest="$INSTALLED_DIR/clawflowsagent/$wf_name"
+          mkdir -p "$dest"
+          cp -r "$COMMUNITY_DIR/$wf_name/"* "$dest/" 2>/dev/null || true
+          rm "${link%/}"
+          ln -s "$dest" "$ENABLED_DIR/$wf_name"
+          migrated=$((migrated + 1))
+          ;;
+      esac
+    done
+    rm -rf "$COMMUNITY_DIR"
+    [ "$migrated" -gt 0 ] && echo "  Migrated $migrated community workflow(s) to installed/clawflowsagent/"
+  fi
 
   echo "Syncing workflows to ClawFlows Web..."
 
