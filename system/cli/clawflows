@@ -2083,6 +2083,29 @@ _hub_save_installed() {
 cmd_web_login() {
   _hub_ensure_dir
 
+  # If a token is passed directly, save it and verify
+  if [ -n "${1:-}" ]; then
+    local token="$1"
+    _hub_save_token "$token"
+
+    # Verify the token works
+    local response
+    response="$(curl -sf -X POST "$HUB_URL/api/sync" \
+      -H "Authorization: Bearer $token" \
+      -H "Content-Type: application/json" \
+      -d '{"workflows":[]}')" || {
+      rm -f "$HUB_TOKEN_FILE"
+      die "Invalid token. Please check and try again."
+    }
+
+    echo ""
+    echo "  ✅ Logged in successfully!"
+    echo ""
+    echo "  Run 'clawflows web sync' to push your workflows."
+    echo ""
+    return
+  fi
+
   echo "Starting ClawFlows Web login..."
   echo ""
 
@@ -2425,7 +2448,7 @@ cmd_web() {
   shift 2>/dev/null || true
 
   case "$subcmd" in
-    login)    cmd_web_login ;;
+    login)    cmd_web_login "${1:-}" ;;
     logout)   cmd_web_logout ;;
     whoami)   cmd_web_whoami ;;
     sync)     cmd_web_sync ;;
