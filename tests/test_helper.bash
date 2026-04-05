@@ -28,11 +28,13 @@ setup_test_environment() {
     # These would normally be set by the CLI, but we set them for testing
     export CUSTOM_DIR="${CLAWFLOWS_DIR}/workflows/available/custom"
     export COMMUNITY_DIR="${CLAWFLOWS_DIR}/workflows/available/community"
+    export INSTALLED_DIR="${CLAWFLOWS_DIR}/workflows/available/installed"
     export ENABLED_DIR="${CLAWFLOWS_DIR}/workflows/enabled"
 
     # Create directory structure
     mkdir -p "$CUSTOM_DIR"
     mkdir -p "$COMMUNITY_DIR"
+    mkdir -p "$INSTALLED_DIR"
     mkdir -p "$ENABLED_DIR"
     mkdir -p "$BACKUP_DIR"
     mkdir -p "${CLAWFLOWS_DIR}/system/cli"
@@ -70,6 +72,7 @@ AGENTS_MD="${AGENTS_MD}"
 BACKUP_DIR="${BACKUP_DIR}"
 COMMUNITY_DIR="${COMMUNITY_DIR}"
 CUSTOM_DIR="${CUSTOM_DIR}"
+INSTALLED_DIR="${INSTALLED_DIR}"
 ENABLED_DIR="${ENABLED_DIR}"
 SUBMISSIONS_DIR="${CLAWFLOWS_DIR}/community-submissions"
 BIN_TARGET="\$HOME/.local/bin/clawflows"

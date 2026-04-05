@@ -50,28 +50,33 @@ teardown() {
     assert_output --partial "lifecycle-test"
 }
 
-@test "lifecycle: custom overrides community by name" {
-    # Create community workflow
-    create_community_workflow "shared-workflow" "🌍" "Community version"
-    enable_workflow "shared-workflow"
+@test "lifecycle: custom overrides installed by name" {
+    # Create installed workflow
+    mkdir -p "${INSTALLED_DIR}/testuser/shared-workflow"
+    printf '%s\n' "---
+name: shared-workflow
+emoji: \"🌍\"
+description: Installed version
+---
 
-    # Verify community version is enabled
+# shared-workflow
+Test." > "${INSTALLED_DIR}/testuser/shared-workflow/WORKFLOW.md"
+    ln -s "${INSTALLED_DIR}/testuser/shared-workflow" "${ENABLED_DIR}/shared-workflow"
+
+    # Verify installed version is enabled
     run_clawflows list enabled
     assert_success
-    assert_output --partial "Community version"
+    assert_output --partial "shared-workflow"
 
     # Edit to create custom version
     run_clawflows edit shared-workflow
     assert_success
     assert_output --partial "copied to custom"
 
-    # Custom should now shadow community
-    run_clawflows list available
+    # Custom should now shadow installed
+    run_clawflows list
     assert_success
-    # Only one version should appear (custom shadows community)
-    local count
-    count=$(echo "$output" | grep -c "shared-workflow" || true)
-    [[ "$count" -le 2 ]]  # Could appear in enabled and available sections
+    assert_output --partial "shared-workflow"
 }
 
 @test "lifecycle: backup -> delete custom -> restore" {
@@ -105,9 +110,23 @@ teardown() {
 }
 
 @test "lifecycle: multiple workflows enabled" {
-    # Create several workflows
-    create_community_workflow "workflow-1" "1️⃣" "First workflow"
-    create_community_workflow "workflow-2" "2️⃣" "Second workflow"
+    # Create installed workflows
+    mkdir -p "${INSTALLED_DIR}/testuser/workflow-1"
+    printf '%s\n' "---
+name: workflow-1
+emoji: \"1️⃣\"
+description: First workflow
+---
+# workflow-1" > "${INSTALLED_DIR}/testuser/workflow-1/WORKFLOW.md"
+
+    mkdir -p "${INSTALLED_DIR}/testuser/workflow-2"
+    printf '%s\n' "---
+name: workflow-2
+emoji: \"2️⃣\"
+description: Second workflow
+---
+# workflow-2" > "${INSTALLED_DIR}/testuser/workflow-2/WORKFLOW.md"
+
     create_custom_workflow "workflow-3" "3️⃣" "Third workflow"
 
     # Enable all
@@ -158,7 +177,13 @@ teardown() {
 # ============================================================================
 
 @test "recovery: enable after disable" {
-    create_community_workflow "toggle-workflow" "🔄" "Toggle test"
+    mkdir -p "${INSTALLED_DIR}/testuser/toggle-workflow"
+    printf '%s\n' "---
+name: toggle-workflow
+emoji: \"🔄\"
+description: Toggle test
+---
+# toggle-workflow" > "${INSTALLED_DIR}/testuser/toggle-workflow/WORKFLOW.md"
 
     run_clawflows enable toggle-workflow
     assert_success
