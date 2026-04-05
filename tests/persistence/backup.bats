@@ -53,9 +53,9 @@ teardown() {
 
 @test "backup: includes enabled list" {
     create_custom_workflow "custom-a" "🅰️" "Custom A"
-    create_community_workflow "comm-b" "🅱️" "Community B"
+    create_installed_workflow "inst-b" "🅱️" "Installed B"
     enable_workflow "custom-a"
-    enable_workflow "comm-b"
+    enable_workflow "inst-b"
 
     run_clawflows backup
 
@@ -70,7 +70,7 @@ teardown() {
     assert [ -f "${extract_dir}/enabled-workflows.txt" ]
     run cat "${extract_dir}/enabled-workflows.txt"
     assert_output --partial "custom-a"
-    assert_output --partial "comm-b"
+    assert_output --partial "inst-b"
 
     rm -rf "$extract_dir"
 }
@@ -125,9 +125,9 @@ teardown() {
 @test "backup: shows correct counts" {
     create_custom_workflow "custom-1" "1️⃣" "Custom 1"
     create_custom_workflow "custom-2" "2️⃣" "Custom 2"
-    create_community_workflow "comm-1" "🌍" "Community 1"
+    create_installed_workflow "inst-1" "🌍" "Installed 1"
     enable_workflow "custom-1"
-    enable_workflow "comm-1"
+    enable_workflow "inst-1"
 
     run_clawflows backup
 

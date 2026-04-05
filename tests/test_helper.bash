@@ -64,7 +64,7 @@ create_test_cli() {
     # Create a wrapper script that sets our test paths then sources the real CLI
     cat > "$TEST_CLI" << EOF
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
 # TEST OVERRIDES - injected by test_helper.bash
 CLAWFLOWS_DIR="${CLAWFLOWS_DIR}"
@@ -152,9 +152,55 @@ This is a test workflow for ${name}.
     printf '%s\n' "$content" > "${target_dir}/WORKFLOW.md"
 }
 
-# create_community_workflow is a convenience wrapper
+# create_community_workflow is a convenience wrapper (DEPRECATED — use create_installed_workflow)
 create_community_workflow() {
     create_workflow "community" "$@"
+}
+
+# create_installed_workflow creates a workflow in installed/<username>/<name>/
+# Usage: create_installed_workflow <name> [emoji] [description] [schedule] [author] [username]
+create_installed_workflow() {
+    local name="$1"
+    local emoji="${2:-}"
+    local description="${3:-A test workflow}"
+    local schedule="${4:-}"
+    local author="${5:-}"
+    local username="${6:-testuser}"
+
+    local target_dir="${INSTALLED_DIR}/${username}/${name}"
+    mkdir -p "$target_dir"
+
+    # Build YAML frontmatter
+    local content="---
+name: ${name}"
+
+    if [[ -n "$emoji" ]]; then
+        content="${content}
+emoji: \"${emoji}\""
+    fi
+
+    content="${content}
+description: ${description}"
+
+    if [[ -n "$schedule" ]]; then
+        content="${content}
+schedule: \"${schedule}\""
+    fi
+
+    if [[ -n "$author" ]]; then
+        content="${content}
+author: ${author}"
+    fi
+
+    content="${content}
+---
+
+# ${name}
+
+This is a test workflow for ${name}.
+"
+
+    printf '%s\n' "$content" > "${target_dir}/WORKFLOW.md"
 }
 
 # create_custom_workflow is a convenience wrapper
@@ -172,6 +218,16 @@ enable_workflow() {
     elif [[ -d "${COMMUNITY_DIR}/${name}" ]]; then
         source_dir="${COMMUNITY_DIR}/${name}"
     else
+        # Search installed/*/<name>
+        for agent_dir in "${INSTALLED_DIR}"/*/; do
+            if [[ -d "${agent_dir}${name}" ]]; then
+                source_dir="${agent_dir}${name}"
+                break
+            fi
+        done
+    fi
+
+    if [[ -z "${source_dir:-}" ]]; then
         echo "Workflow not found: $name" >&2
         return 1
     fi

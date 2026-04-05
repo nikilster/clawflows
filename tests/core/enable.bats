@@ -15,8 +15,8 @@ teardown() {
 # Basic Enable Tests
 # ============================================================================
 
-@test "enable: enables a community workflow" {
-    create_community_workflow "test-workflow" "🧪" "Test workflow"
+@test "enable: enables an installed workflow" {
+    create_installed_workflow "test-workflow" "🧪" "Test workflow"
 
     run_clawflows enable test-workflow
 
@@ -26,7 +26,7 @@ teardown() {
 }
 
 @test "enable: shows description and schedule" {
-    create_community_workflow "test-workflow" "🧪" "A test workflow" "9am"
+    create_installed_workflow "test-workflow" "🧪" "A test workflow" "9am"
 
     run_clawflows enable test-workflow
 
@@ -37,7 +37,7 @@ teardown() {
 }
 
 @test "enable: shows on-demand hint for unscheduled workflow" {
-    create_community_workflow "test-workflow" "🧪" "A test workflow"
+    create_installed_workflow "test-workflow" "🧪" "A test workflow"
 
     run_clawflows enable test-workflow
 
@@ -47,21 +47,21 @@ teardown() {
 }
 
 @test "enable: enables a custom workflow (takes priority)" {
-    # Create both community and custom with same name
-    create_community_workflow "test-workflow" "🌍" "Community version"
+    # Create both installed and custom with same name
+    create_installed_workflow "test-workflow" "🌍" "Installed version"
     create_custom_workflow "test-workflow" "🏠" "Custom version"
 
     run_clawflows enable test-workflow
 
     assert_success
-    # Should link to custom, not community
+    # Should link to custom, not installed
     local target
     target="$(readlink "${ENABLED_DIR}/test-workflow")"
     assert [ "$target" = "${CUSTOM_DIR}/test-workflow" ]
 }
 
 @test "enable: already-enabled workflow is idempotent" {
-    create_community_workflow "test-workflow" "🧪" "Test workflow"
+    create_installed_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
 
     run_clawflows enable test-workflow
@@ -78,17 +78,17 @@ teardown() {
 }
 
 @test "enable: creates valid symlink to source directory" {
-    create_community_workflow "test-workflow" "🧪" "Test workflow"
+    create_installed_workflow "test-workflow" "🧪" "Test workflow"
 
     run_clawflows enable test-workflow
 
     assert_success
     assert_is_symlink "${ENABLED_DIR}/test-workflow"
-    assert_symlink_target "${ENABLED_DIR}/test-workflow" "${COMMUNITY_DIR}/test-workflow"
+    assert_symlink_target "${ENABLED_DIR}/test-workflow" "${INSTALLED_DIR}/testuser/test-workflow"
 }
 
 @test "enable: calls sync-agent" {
-    create_community_workflow "test-workflow" "🧪" "Test workflow"
+    create_installed_workflow "test-workflow" "🧪" "Test workflow"
     setup_agents_md
 
     run_clawflows enable test-workflow
@@ -110,7 +110,7 @@ teardown() {
 # ============================================================================
 
 @test "enable: workflow with custom already enabled links to custom" {
-    create_community_workflow "my-workflow" "🌍" "Community version"
+    create_installed_workflow "my-workflow" "🌍" "Installed version"
     create_custom_workflow "my-workflow" "🏠" "Custom version"
 
     run_clawflows enable my-workflow
@@ -122,8 +122,8 @@ teardown() {
 }
 
 @test "enable: multiple workflows can be enabled" {
-    create_community_workflow "workflow-a" "🅰️" "Workflow A"
-    create_community_workflow "workflow-b" "🅱️" "Workflow B"
+    create_installed_workflow "workflow-a" "🅰️" "Workflow A"
+    create_installed_workflow "workflow-b" "🅱️" "Workflow B"
 
     run_clawflows enable workflow-a
     assert_success

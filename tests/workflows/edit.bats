@@ -15,8 +15,8 @@ teardown() {
 # Basic Edit Tests
 # ============================================================================
 
-@test "edit: copies community workflow to custom" {
-    create_community_workflow "test-workflow" "🧪" "Test workflow"
+@test "edit: copies installed workflow to custom" {
+    create_installed_workflow "test-workflow" "🧪" "Test workflow"
 
     run_clawflows edit test-workflow
 
@@ -37,13 +37,13 @@ teardown() {
 }
 
 @test "edit: updates symlink to custom version if enabled" {
-    create_community_workflow "test-workflow" "🧪" "Test workflow"
+    create_installed_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
 
-    # Verify it points to community first
+    # Verify it points to installed first
     local before_target
     before_target="$(readlink "${ENABLED_DIR}/test-workflow")"
-    [[ "$before_target" == *"community"* ]]
+    [[ "$before_target" == *"installed"* ]]
 
     run_clawflows edit test-workflow
 
@@ -75,7 +75,7 @@ teardown() {
 # ============================================================================
 
 @test "edit: preserves workflow content when copying" {
-    create_community_workflow "test-workflow" "🧪" "Original description"
+    create_installed_workflow "test-workflow" "🧪" "Original description"
 
     run_clawflows edit test-workflow
 

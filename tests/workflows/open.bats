@@ -25,14 +25,13 @@ teardown() {
     assert_output --partial "Opening"
 }
 
-@test "open: warns for community workflows" {
-    create_community_workflow "test-workflow" "🧪" "Community workflow"
+@test "open: opens installed workflow file" {
+    create_installed_workflow "test-workflow" "🧪" "Installed workflow"
 
     run_clawflows open test-workflow
 
     assert_success
-    assert_output --partial "is a community workflow"
-    assert_output --partial "Changes will be lost on update"
+    assert_output --partial "Opening"
 }
 
 @test "open: non-existent workflow fails" {
@@ -63,15 +62,15 @@ teardown() {
     assert_output --partial "Opening"
 }
 
-@test "open: prefers custom over community" {
-    create_community_workflow "shared-name" "🌍" "Community version"
+@test "open: prefers custom over installed" {
+    create_installed_workflow "shared-name" "🌍" "Installed version"
     create_custom_workflow "shared-name" "🏠" "Custom version"
 
     run_clawflows open shared-name
 
     assert_success
-    # Should NOT warn about community workflow since custom exists
-    refute_output --partial "is a community workflow"
+    assert_output --partial "Opening"
+    assert_output --partial "custom"
 }
 
 @test "open: missing WORKFLOW.md fails" {

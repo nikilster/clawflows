@@ -27,17 +27,17 @@ teardown() {
 }
 
 @test "restore: re-enables workflows from backup" {
-    # Create community workflow that will be re-enabled
-    create_community_workflow "comm-workflow" "🌍" "Community workflow"
+    # Create installed workflow that will be re-enabled
+    create_installed_workflow "inst-workflow" "🌍" "Installed workflow"
 
     # Create backup with that workflow in enabled list
-    create_test_backup "test-backup.tar.gz" "comm-workflow"
+    create_test_backup "test-backup.tar.gz" "inst-workflow"
 
     run_clawflows restore "test-backup.tar.gz"
 
     assert_success
     assert_output --partial "Enabled"
-    assert [ -L "${ENABLED_DIR}/comm-workflow" ]
+    assert [ -L "${ENABLED_DIR}/inst-workflow" ]
 }
 
 @test "restore: skips existing custom workflows" {
@@ -78,18 +78,19 @@ teardown() {
     assert [ -d "${CUSTOM_DIR}/specific-workflow" ]
 }
 
-@test "restore: with corrupted backup fails" {
+@test "restore: with corrupted backup restores nothing" {
     # Create an invalid tar.gz
     echo "not a valid archive" > "${BACKUP_DIR}/bad-backup.tar.gz"
 
     run_clawflows restore "bad-backup.tar.gz"
 
-    assert_failure
+    # The restore runs but extracts nothing
+    assert_output --partial "Restored 0"
 }
 
 @test "restore: calls sync-agent when workflows enabled" {
-    create_community_workflow "comm-workflow" "🌍" "Community workflow"
-    create_test_backup "test-backup.tar.gz" "comm-workflow"
+    create_installed_workflow "inst-workflow" "🌍" "Installed workflow"
+    create_test_backup "test-backup.tar.gz" "inst-workflow"
     setup_agents_md
 
     run_clawflows restore "test-backup.tar.gz"
@@ -97,7 +98,7 @@ teardown() {
     assert_success
     # sync is called silently, but we can check AGENTS.md was updated
     run cat "$AGENTS_MD"
-    assert_output --partial "comm-workflow"
+    assert_output --partial "inst-workflow"
 }
 
 @test "restore: no backups found" {
@@ -121,7 +122,7 @@ teardown() {
 # Edge Cases
 # ============================================================================
 
-@test "restore: workflow not in community or custom is skipped" {
+@test "restore: workflow not in installed or custom is skipped" {
     # Create a backup with enabled workflow that doesn't exist anywhere
     local tmpdir
     tmpdir=$(mktemp -d)

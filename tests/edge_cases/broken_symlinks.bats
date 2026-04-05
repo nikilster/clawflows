@@ -16,7 +16,7 @@ teardown() {
 # ============================================================================
 
 @test "broken symlink: list skips broken symlinks" {
-    create_community_workflow "valid-workflow" "✅" "Valid workflow"
+    create_installed_workflow "valid-workflow" "✅" "Valid workflow"
     enable_workflow "valid-workflow"
     create_broken_symlink "broken-workflow"
 
@@ -38,7 +38,7 @@ teardown() {
 }
 
 @test "broken symlink: sync-agent skips broken symlinks" {
-    create_community_workflow "valid-workflow" "✅" "Valid workflow"
+    create_installed_workflow "valid-workflow" "✅" "Valid workflow"
     enable_workflow "valid-workflow"
     create_broken_symlink "broken-workflow"
     touch "$AGENTS_MD"
@@ -64,11 +64,11 @@ teardown() {
 }
 
 @test "broken symlink: created when source deleted after enable" {
-    create_community_workflow "temp-workflow" "🕐" "Temporary workflow"
+    create_installed_workflow "temp-workflow" "🕐" "Temporary workflow"
     enable_workflow "temp-workflow"
 
     # Delete the source (simulates update removing a workflow)
-    rm -rf "${COMMUNITY_DIR}/temp-workflow"
+    rm -rf "${INSTALLED_DIR}/testuser/temp-workflow"
 
     # Now the symlink is broken
     run_clawflows run temp-workflow

@@ -29,7 +29,7 @@ teardown() {
 # ============================================================================
 
 @test "dashboard --json: outputs valid JSON to stdout" {
-    create_community_workflow "check-email" "📧" "Check your email"
+    create_installed_workflow "check-email" "📧" "Check your email"
 
     run_clawflows dashboard --json
 
@@ -39,9 +39,9 @@ teardown() {
 }
 
 @test "dashboard --json: includes multiple workflows" {
-    create_community_workflow "check-email" "📧" "Check your email"
-    create_community_workflow "send-news" "📰" "Daily news digest"
-    create_community_workflow "track-habits" "✅" "Track daily habits"
+    create_installed_workflow "check-email" "📧" "Check your email"
+    create_installed_workflow "send-news" "📰" "Daily news digest"
+    create_installed_workflow "track-habits" "✅" "Track daily habits"
 
     run_clawflows dashboard --json
 
@@ -56,7 +56,7 @@ teardown() {
 # ============================================================================
 
 @test "dashboard --json: enabled workflows marked true" {
-    create_community_workflow "check-email" "📧" "Check your email"
+    create_installed_workflow "check-email" "📧" "Check your email"
     enable_workflow "check-email"
 
     run_clawflows dashboard --json
@@ -66,7 +66,7 @@ teardown() {
 }
 
 @test "dashboard --json: non-enabled workflows marked false" {
-    create_community_workflow "check-email" "📧" "Check your email"
+    create_installed_workflow "check-email" "📧" "Check your email"
 
     run_clawflows dashboard --json
 
@@ -75,8 +75,8 @@ teardown() {
 }
 
 @test "dashboard --json: mix of enabled and available" {
-    create_community_workflow "check-email" "📧" "Check your email"
-    create_community_workflow "send-news" "📰" "Daily news"
+    create_installed_workflow "check-email" "📧" "Check your email"
+    create_installed_workflow "send-news" "📰" "Daily news"
     enable_workflow "check-email"
 
     run_clawflows dashboard --json
@@ -99,39 +99,39 @@ teardown() {
     echo "$output" | grep -q '"name":"my-workflow".*"source":"custom"'
 }
 
-@test "dashboard --json: community workflows have source community" {
-    create_community_workflow "check-email" "📧" "Check email"
+@test "dashboard --json: installed workflows have source installed" {
+    create_installed_workflow "check-email" "📧" "Check email"
 
     run_clawflows dashboard --json
 
     assert_success
-    echo "$output" | grep -q '"name":"check-email".*"source":"community"'
+    echo "$output" | grep -q '"name":"check-email".*"source":"installed"'
 }
 
 # ============================================================================
 # dashboard --json: Custom Override / Dedup
 # ============================================================================
 
-@test "dashboard --json: custom overrides community by name" {
-    create_community_workflow "check-email" "📧" "Community version"
+@test "dashboard --json: custom overrides installed by name" {
+    create_installed_workflow "check-email" "📧" "Installed version"
     create_custom_workflow "check-email" "📧" "Custom version"
 
     run_clawflows dashboard --json
 
     assert_success
     echo "$output" | grep -q '"name":"check-email".*"source":"custom"'
-    ! echo "$output" | grep -q '"name":"check-email".*"source":"community"'
+    ! echo "$output" | grep -q '"name":"check-email".*"source":"installed"'
 }
 
 @test "dashboard --json: custom override uses custom description" {
-    create_community_workflow "check-email" "📧" "Community desc"
+    create_installed_workflow "check-email" "📧" "Installed desc"
     create_custom_workflow "check-email" "📧" "Custom desc"
 
     run_clawflows dashboard --json
 
     assert_success
     echo "$output" | grep -q '"description":"Custom desc"'
-    ! echo "$output" | grep -q '"description":"Community desc"'
+    ! echo "$output" | grep -q '"description":"Installed desc"'
 }
 
 # ============================================================================
@@ -139,7 +139,7 @@ teardown() {
 # ============================================================================
 
 @test "dashboard --json: includes emoji" {
-    create_community_workflow "send-news" "📰" "Daily news digest"
+    create_installed_workflow "send-news" "📰" "Daily news digest"
 
     run_clawflows dashboard --json
 
@@ -148,7 +148,7 @@ teardown() {
 }
 
 @test "dashboard --json: includes schedule" {
-    create_community_workflow "send-briefing" "☀️" "Morning briefing" "7am"
+    create_installed_workflow "send-briefing" "☀️" "Morning briefing" "7am"
 
     run_clawflows dashboard --json
 
@@ -157,7 +157,7 @@ teardown() {
 }
 
 @test "dashboard --json: includes author" {
-    create_community_workflow "check-email" "📧" "Check email" "" "@dave"
+    create_installed_workflow "check-email" "📧" "Check email" "" "@dave"
 
     run_clawflows dashboard --json
 
@@ -166,7 +166,7 @@ teardown() {
 }
 
 @test "dashboard --json: includes workflow content" {
-    create_community_workflow "check-email" "📧" "Check email"
+    create_installed_workflow "check-email" "📧" "Check email"
 
     run_clawflows dashboard --json
 
@@ -179,9 +179,9 @@ teardown() {
 # ============================================================================
 
 @test "dashboard --json: escapes double quotes in content" {
-    create_community_workflow "test-wf" "🧪" "Test workflow"
+    create_installed_workflow "test-wf" "🧪" "Test workflow"
     printf -- '---\nname: test-wf\nemoji: 🧪\ndescription: Test workflow\n---\n\nSay "hello" to the world\n' \
-        > "${COMMUNITY_DIR}/test-wf/WORKFLOW.md"
+        > "${INSTALLED_DIR}/testuser/test-wf/WORKFLOW.md"
 
     run_clawflows dashboard --json
 
@@ -190,9 +190,9 @@ teardown() {
 }
 
 @test "dashboard --json: escapes backslashes in content" {
-    create_community_workflow "test-wf" "🧪" "Test workflow"
+    create_installed_workflow "test-wf" "🧪" "Test workflow"
     printf -- '---\nname: test-wf\nemoji: 🧪\ndescription: Test workflow\n---\n\nUse path C:\\Users\\test\n' \
-        > "${COMMUNITY_DIR}/test-wf/WORKFLOW.md"
+        > "${INSTALLED_DIR}/testuser/test-wf/WORKFLOW.md"
 
     run_clawflows dashboard --json
 
@@ -271,7 +271,7 @@ start_dashboard_server() {
 }
 
 @test "dashboard server: GET /api/workflows returns JSON" {
-    create_community_workflow "check-email" "📧" "Check your email"
+    create_installed_workflow "check-email" "📧" "Check your email"
 
     start_dashboard_server
 
@@ -282,7 +282,7 @@ start_dashboard_server() {
 }
 
 @test "dashboard server: GET / serves HTML" {
-    create_community_workflow "check-email" "📧" "Check email"
+    create_installed_workflow "check-email" "📧" "Check email"
 
     start_dashboard_server
 
@@ -293,7 +293,7 @@ start_dashboard_server() {
 }
 
 @test "dashboard server: POST /api/enable enables a workflow" {
-    create_community_workflow "check-email" "📧" "Check your email"
+    create_installed_workflow "check-email" "📧" "Check your email"
 
     start_dashboard_server
 
@@ -310,7 +310,7 @@ start_dashboard_server() {
 }
 
 @test "dashboard server: POST /api/disable disables a workflow" {
-    create_community_workflow "check-email" "📧" "Check your email"
+    create_installed_workflow "check-email" "📧" "Check your email"
     enable_workflow "check-email"
 
     start_dashboard_server
@@ -328,7 +328,7 @@ start_dashboard_server() {
 }
 
 @test "dashboard server: workflows update after enable/disable" {
-    create_community_workflow "check-email" "📧" "Check your email"
+    create_installed_workflow "check-email" "📧" "Check your email"
 
     start_dashboard_server
 

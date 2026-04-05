@@ -77,7 +77,7 @@ teardown() {
 }
 
 @test "create --from-json: with duplicate name fails" {
-    create_community_workflow "existing-workflow" "🧪" "Existing workflow"
+    create_installed_workflow "existing-workflow" "🧪" "Existing workflow"
     local json='{"name": "existing-workflow", "summary": "Duplicate", "description": "Should fail"}'
 
     run_clawflows create --from-json "$json"

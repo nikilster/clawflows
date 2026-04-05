@@ -17,7 +17,7 @@ teardown() {
 # ============================================================================
 
 @test "run: runs enabled workflow (fallback mode without openclaw)" {
-    create_community_workflow "test-workflow" "🧪" "Test workflow"
+    create_installed_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
 
     run_clawflows run test-workflow
@@ -27,8 +27,8 @@ teardown() {
     assert_output --partial "Run test-workflow"
 }
 
-@test "run: auto-enables community workflow if not enabled" {
-    create_community_workflow "test-workflow" "🧪" "Test workflow"
+@test "run: auto-enables installed workflow if not enabled" {
+    create_installed_workflow "test-workflow" "🧪" "Test workflow"
     # Don't enable it
 
     run_clawflows run test-workflow
@@ -68,7 +68,7 @@ teardown() {
 # ============================================================================
 
 @test "run: uses openclaw when available" {
-    create_community_workflow "test-workflow" "🧪" "Test workflow"
+    create_installed_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
     mock_openclaw "success"
 
@@ -80,7 +80,7 @@ teardown() {
 }
 
 @test "run: fallback without openclaw shows instructions" {
-    create_community_workflow "test-workflow" "🧪" "Test workflow"
+    create_installed_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
     mock_openclaw "missing"
 
@@ -96,8 +96,8 @@ teardown() {
 
 @test "run: with missing WORKFLOW.md fails" {
     # Create directory but not WORKFLOW.md
-    mkdir -p "${COMMUNITY_DIR}/broken-workflow"
-    ln -s "${COMMUNITY_DIR}/broken-workflow" "${ENABLED_DIR}/broken-workflow"
+    mkdir -p "${INSTALLED_DIR}/testuser/broken-workflow"
+    ln -s "${INSTALLED_DIR}/testuser/broken-workflow" "${ENABLED_DIR}/broken-workflow"
 
     run_clawflows run broken-workflow
 
@@ -105,8 +105,8 @@ teardown() {
     assert_output --partial "WORKFLOW.md not found"
 }
 
-@test "run: prefers custom over community" {
-    create_community_workflow "shared-name" "🌍" "Community version"
+@test "run: prefers custom over installed" {
+    create_installed_workflow "shared-name" "🌍" "Installed version"
     create_custom_workflow "shared-name" "🏠" "Custom version"
     # Neither enabled yet
 

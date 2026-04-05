@@ -16,7 +16,7 @@ teardown() {
 # ============================================================================
 
 @test "disable: disables an enabled workflow" {
-    create_community_workflow "test-workflow" "🧪" "Test workflow"
+    create_installed_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
 
     run_clawflows disable test-workflow
@@ -27,7 +27,7 @@ teardown() {
 }
 
 @test "disable: non-enabled workflow reports not enabled" {
-    create_community_workflow "test-workflow" "🧪" "Test workflow"
+    create_installed_workflow "test-workflow" "🧪" "Test workflow"
     # Don't enable it
 
     run_clawflows disable test-workflow
@@ -37,7 +37,7 @@ teardown() {
 }
 
 @test "disable: removes symlink but not source" {
-    create_community_workflow "test-workflow" "🧪" "Test workflow"
+    create_installed_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
 
     run_clawflows disable test-workflow
@@ -46,12 +46,12 @@ teardown() {
     # Symlink should be gone
     assert [ ! -L "${ENABLED_DIR}/test-workflow" ]
     # Source should still exist
-    assert [ -d "${COMMUNITY_DIR}/test-workflow" ]
-    assert [ -f "${COMMUNITY_DIR}/test-workflow/WORKFLOW.md" ]
+    assert [ -d "${INSTALLED_DIR}/testuser/test-workflow" ]
+    assert [ -f "${INSTALLED_DIR}/testuser/test-workflow/WORKFLOW.md" ]
 }
 
 @test "disable: calls sync-agent" {
-    create_community_workflow "test-workflow" "🧪" "Test workflow"
+    create_installed_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
     setup_agents_md
 
@@ -85,7 +85,7 @@ teardown() {
 }
 
 @test "disable: can disable and re-enable" {
-    create_community_workflow "test-workflow" "🧪" "Test workflow"
+    create_installed_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
 
     run_clawflows disable test-workflow
@@ -106,10 +106,10 @@ teardown() {
 }
 
 @test "disable: handles directory (not symlink) in enabled" {
-    create_community_workflow "test-workflow" "🧪" "Test workflow"
+    create_installed_workflow "test-workflow" "🧪" "Test workflow"
     # Create a real directory instead of symlink (edge case)
     mkdir -p "${ENABLED_DIR}/test-workflow"
-    cp "${COMMUNITY_DIR}/test-workflow/WORKFLOW.md" "${ENABLED_DIR}/test-workflow/"
+    cp "${INSTALLED_DIR}/testuser/test-workflow/WORKFLOW.md" "${ENABLED_DIR}/test-workflow/"
 
     run_clawflows disable test-workflow
 

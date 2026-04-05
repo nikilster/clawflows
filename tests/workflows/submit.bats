@@ -27,12 +27,12 @@ teardown() {
 }
 
 @test "submit: only works on custom workflows" {
-    create_community_workflow "community-wf" "🌍" "Community workflow"
+    create_installed_workflow "installed-wf" "🌍" "Installed workflow"
 
-    run_clawflows submit community-wf
+    run_clawflows submit installed-wf
 
     assert_failure
-    assert_output --partial "already a community workflow"
+    assert_output --partial "not found in custom/"
 }
 
 @test "submit: non-existent custom workflow fails" {
@@ -87,15 +87,21 @@ EOF
 # Output Tests
 # ============================================================================
 
-@test "submit: shows next steps" {
+@test "submit: shows submission guidance" {
     create_custom_workflow "my-custom" "🏠" "My custom workflow"
+
+    # Hide gh CLI so submit falls back to manual instructions
+    PATH_BACKUP="$PATH"
+    # Remove directories containing gh from PATH
+    export PATH="$(echo "$PATH" | tr ':' '\n' | while read -r p; do [ -x "$p/gh" ] || printf '%s:' "$p"; done | sed 's/:$//')"
 
     run_clawflows submit my-custom
 
+    export PATH="$PATH_BACKUP"
+
     assert_success
-    assert_output --partial "Next steps"
+    assert_output --partial "Workflow copied to community-submissions/"
     assert_output --partial "Fork this repo"
     assert_output --partial "git add"
     assert_output --partial "git commit"
-    assert_output --partial "pull request"
 }

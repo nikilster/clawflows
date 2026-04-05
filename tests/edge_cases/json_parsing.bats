@@ -25,7 +25,7 @@ teardown() {
 
     run cat "${CUSTOM_DIR}/full-workflow/WORKFLOW.md"
     assert_output --partial "name: full-workflow"
-    assert_output --partial "emoji: 🎯"
+    assert_output --partial 'emoji: "🎯"'
     assert_output --partial 'schedule: "9am"'
     assert_output --partial "author: @test"
 }
@@ -56,7 +56,7 @@ teardown() {
     assert_success
     run cat "${CUSTOM_DIR}/minimal/WORKFLOW.md"
     # Should have default emoji
-    assert_output --partial "emoji: 🔧"
+    assert_output --partial 'emoji: "🔧"'
     # Should NOT have schedule
     refute_output --partial "schedule:"
 }

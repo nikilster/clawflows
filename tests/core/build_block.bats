@@ -173,7 +173,7 @@ teardown() {
 }
 
 @test "build_block: lists enabled workflows" {
-    create_community_workflow "test-wf" "🧪" "A test workflow"
+    create_installed_workflow "test-wf" "🧪" "A test workflow"
     enable_workflow "test-wf"
 
     run_clawflows sync-agent
