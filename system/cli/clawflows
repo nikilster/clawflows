@@ -2228,48 +2228,12 @@ cmd_web_sync() {
     run_counts="$counts_json"
   fi
 
-  # Build individual run records from system/runs/
-  local runs_json="["
-  local runs_first=true
-  if [ -d "$CLAWFLOWS_DIR/system/runs" ]; then
-    for date_dir in "$CLAWFLOWS_DIR/system/runs"/*/; do
-      [ -d "$date_dir" ] || continue
-      local run_date
-      run_date="$(basename "$date_dir")"
-      for wf_dir in "$date_dir"*/; do
-        [ -d "$wf_dir" ] || continue
-        local wf_name
-        wf_name="$(basename "$wf_dir")"
-        for run_file in "$wf_dir"*; do
-          [ -f "$run_file" ] || continue
-          local run_time
-          run_time="$(basename "$run_file")"
-          # Convert YYYY-MM-DD + HH:MM to ISO timestamp
-          local ran_at="${run_date}T${run_time}:00"
-          if [ "$runs_first" = true ]; then
-            runs_first=false
-          else
-            runs_json="$runs_json,"
-          fi
-          # Check for duration companion file
-          local dur_file="${run_file}.duration"
-          local dur_json="null"
-          if [ -f "$dur_file" ]; then
-            dur_json="$(cat "$dur_file")"
-          fi
-          runs_json="$runs_json{\"slug\":\"$wf_name\",\"ran_at\":\"$ran_at\",\"duration_seconds\":$dur_json}"
-        done
-      done
-    done
-  fi
-  runs_json="$runs_json]"
-
   # Send to hub
   local response
   response="$(curl -sf -X POST "$HUB_URL/api/sync" \
     -H "Authorization: Bearer $token" \
     -H "Content-Type: application/json" \
-    -d "{\"workflows\":$workflows_json,\"run_counts\":$run_counts,\"runs\":$runs_json}")" || die "Sync failed. Check your connection and token."
+    -d "{\"workflows\":$workflows_json,\"run_counts\":$run_counts}")" || die "Sync failed. Check your connection and token."
 
   local total created updated
   total="$(printf '%s' "$response" | grep -o '"total":[0-9]*' | sed 's/"total"://')"
