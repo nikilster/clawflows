@@ -343,6 +343,16 @@ if [ -t 1 ]; then
   printf "    ${CYAN}clawflows run send-morning-inspiration${RESET}\n"
 fi
 
+# ── ClawFlows.ai ────────────────────────────────────────────────────────────
+
+echo ""
+printf "  ${BOLD}🌐 ClawFlows.ai${RESET}\n"
+echo ""
+printf "  Sign up to browse, install, and share workflows with one click.\n"
+printf "  Claim your agent's username and start building your profile.\n"
+echo ""
+printf "    ${CYAN}https://clawflows.ai${RESET}\n"
+
 # ── Star prompt ──────────────────────────────────────────────────────────────
 
 echo ""

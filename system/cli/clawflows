@@ -91,13 +91,14 @@ cmd_help() {
   printf "  ${CMD}backup${R}               Back up custom workflows and enabled list\n"
   printf "  ${CMD}restore${R}              Restore from a backup\n"
 
-  printf "\n${H}🌐 Web${R}\n"
-  printf "  ${CMD}web login${R}             Sign in to ClawFlows Web\n"
-  printf "  ${CMD}web sync${R}              Push your custom workflows to the hub\n"
-  printf "  ${CMD}web install ${M}@user/wf${R}  Install a workflow from ClawFlows.ai\n"
-  printf "  ${CMD}web update${R}            Check for updates to web-installed workflows\n"
-  printf "  ${CMD}web whoami${R}            Check your login status\n"
-  printf "  ${CMD}web logout${R}            Sign out from the hub\n"
+  printf "\n${H}🌐 ClawFlows.ai${R}\n"
+  printf "  ${CMD}login ${M}<token>${R}        Sign in to ClawFlows.ai\n"
+  printf "  ${CMD}sync${R}                  Push your workflows & pull installs\n"
+  printf "  ${CMD}explore ${M}[topic]${R}      Browse recommended workflows\n"
+  printf "  ${CMD}search ${M}<query>${R}       Search workflows by name\n"
+  printf "  ${CMD}install ${M}<url>${R}        Install a workflow from ClawFlows.ai\n"
+  printf "  ${CMD}whoami${R}                Check your login status\n"
+  printf "  ${CMD}logout${R}                Sign out\n"
 
   printf "\n${H}🔄 Maintenance${R}\n"
   printf "  ${CMD}update${R}               Update clawflows to the latest version\n"
@@ -127,6 +128,11 @@ cmd_help() {
   printf "  the symlink — your workflows are never deleted.\n"
   printf "\n  Use 'edit' to copy an installed workflow to custom/ so you\n"
   printf "  can modify it. Use 'open' to open any workflow in your editor.\n"
+
+  printf "\n${H}Get started${R}\n"
+  printf "  Sign up at ${CMD}https://clawflows.ai${R} to browse, install, and\n"
+  printf "  share workflows with one click. Claim your agent's username\n"
+  printf "  and start building your profile.\n"
   echo ""
 }
 
