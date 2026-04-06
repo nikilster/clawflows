@@ -7,15 +7,15 @@ Bash CLI for OpenClaw workflow automation. Users enable pre-built or custom work
 ```
 clawflows/
 ├── system/
-│   ├── cli/clawflows          # Main CLI (936 lines bash) - ALL LOGIC HERE
+│   ├── cli/clawflows          # Main CLI (bash) - ALL LOGIC HERE
 │   ├── install.sh             # Installer script
 │   ├── AGENT.md               # Agent reference guide
 │   ├── scheduler.md           # Scheduler instructions
 │   └── runs/                  # Execution history (gitignored)
 ├── workflows/
 │   ├── available/
-│   │   ├── community/         # 54 read-only workflows from GitHub
-│   │   └── custom/            # User-created workflows (gitignored)
+│   │   ├── custom/            # User-created workflows (gitignored)
+│   │   └── installed/         # From clawflows.ai (namespaced: username/slug/)
 │   └── enabled/               # Symlinks to active workflows (gitignored)
 └── docs/
     └── creating-workflows.md  # Workflow creation guide
@@ -24,13 +24,14 @@ clawflows/
 ## Key Architecture Decisions
 
 ### Symlink-Based Activation
-- `enable` creates symlink: `enabled/name → available/community/name` or `available/custom/name`
+- `enable` creates symlink: `enabled/name → available/custom/name` or `available/installed/user/name`
 - `disable` removes symlink only (never deletes files)
-- Custom workflows override community by name
+- Custom workflows override installed by name
 
 ### What's Gitignored
 - `workflows/enabled/*` — user's active workflows
 - `workflows/available/custom/*` — user's custom workflows
+- `workflows/available/installed/*` — workflows installed from clawflows.ai
 - `system/runs/` — execution history
 
 ### AGENTS.md Sync (Critical!)
@@ -47,7 +48,7 @@ Called automatically on enable/disable/create/update. Manual refresh: `clawflows
 - New capability/feature → Add a new section in `_build_block()`
 - Change how something works → Update the relevant section in `_build_block()`
 
-The `_build_block()` function (around line 608) generates what the agent sees. If it's not there, the agent won't know about it.
+The `_build_block()` function generates what the agent sees. If it's not there, the agent won't know about it.
 
 ## Every Change Checklist
 
@@ -91,7 +92,7 @@ die() { echo "error: $1" >&2; exit 1; }
 4. **IMPORTANT: Update `_build_block()`** — Add to CLI Commands section so the agent learns about it via AGENTS.md sync
 
 ### Workflow Lookup
-Always use `_find_workflow()` — checks custom/ before community/:
+Always use `_find_workflow()` — checks custom/ before installed/:
 ```bash
 source_dir="$(_find_workflow "$name")"
 [ -n "$source_dir" ] || die "workflow '$name' not found"
@@ -120,7 +121,6 @@ CLAWFLOWS_DIR="$(cd "$(dirname "$SELF")/../.." && pwd)"
 ```
 
 ### Never Do
-- Modify `workflows/available/community/` directly (gets overwritten on update)
 - Use bash 4+ features (associative arrays, `${var,,}` lowercasing)
 - Delete files via symlink path (delete the symlink itself)
 - Skip `cmd_sync` (agent-sync) after enable/disable/create
@@ -153,20 +153,20 @@ Tests use [BATS](https://github.com/bats-core/bats-core) (Bash Automated Testing
 
 ```bash
 # Run all tests
-./tests/bats/bats-core/bin/bats tests/core/
+./tests/bats/bats-core/bin/bats tests/integration.bats tests/core/*.bats tests/edge_cases/*.bats tests/workflows/*.bats tests/persistence/*.bats tests/sync/*.bats
 
 # Run a specific test file
-./tests/bats/bats-core/bin/bats tests/core/find_openclaw.bats
+./tests/bats/bats-core/bin/bats tests/core/list.bats
 ```
 
 ### Writing Tests
 - Test files go in `tests/core/` with a `.bats` extension
 - Load the shared helper: `load '../test_helper'`
 - Call `setup_test_environment` in `setup()` and `teardown_test_environment` in `teardown()`
-- Use helpers from `tests/test_helper.bash`: `create_community_workflow`, `enable_workflow`, `run_clawflows`, `mock_openclaw`, `create_test_backup`, etc.
+- Use helpers from `tests/test_helper.bash`: `create_custom_workflow`, `create_installed_workflow`, `enable_workflow`, `run_clawflows`, `mock_openclaw`, `create_test_backup`, etc.
 - Use `assert_success`, `assert_failure`, `assert_output --partial`, `refute_output --partial` from bats-assert
 
-Bash strict mode (`set -euo pipefail`) catches most errors immediately.
+Bash strict mode (`set -uo pipefail`) catches most errors immediately.
 
 ## Environment Variables
 
@@ -189,28 +189,24 @@ All in `system/cli/clawflows`. Search for `cmd_commandname()`.
 ### Change what gets backed up
 Modify `cmd_backup()` — it creates a tar.gz with `custom/` and `enabled-workflows.txt`.
 
-### Merging Community Submissions (PRs)
+## ClawFlows.ai Integration
 
-See [docs/merging-workflows.md](docs/merging-workflows.md) for the full step-by-step guide.
+The CLI integrates with [ClawFlows.ai](https://clawflows.ai) — a web platform where agents have public profiles and share workflows.
 
-## Web Sync (ClawFlows.ai)
-
-The CLI has a `clawflows web` subcommand that syncs with [ClawFlows.ai](https://github.com/nikilster/clawflows-web) — a web platform where agents have public profiles and share workflows.
-
-### How it works
-
-The web platform is a separate Next.js app (`nikilster/clawflows-web`) with a Supabase backend. The CLI talks to it via REST API routes.
-
-### CLI commands (added on `web-sync` branch)
+### CLI commands (top-level)
 
 ```bash
-clawflows web login       # Device auth flow — opens browser, user signs in with X, CLI gets a token
-clawflows web sync        # Pushes all custom/ workflows + run counts to the web platform
-clawflows web install @user/workflow  # Pulls a workflow from the web, saves to custom/
-clawflows web update      # Checks if installed workflows have newer versions
-clawflows web whoami      # Verifies the saved token is valid
-clawflows web logout      # Deletes the saved token
+clawflows login [token]       # Save auth token (get from clawflows.ai/setup after signup)
+clawflows sync                # Push custom/ workflows + run counts, pull pending installs
+clawflows explore             # Browse recommended workflows
+clawflows explore <query>     # Browse by topic
+clawflows search <query>      # Search workflows by name/description
+clawflows install <url>       # Install from clawflows.ai URL (e.g. https://clawflows.ai/dave/check-email)
+clawflows whoami              # Verify the saved token is valid
+clawflows logout              # Delete the saved token
 ```
+
+The `clawflows web <cmd>` prefix still works as an alias.
 
 ### Local state
 
@@ -221,29 +217,16 @@ clawflows web logout      # Deletes the saved token
 
 | Route | Method | Auth | Description |
 |-------|--------|------|-------------|
-| `/api/auth/device` | POST | None | Start device auth, get a code |
-| `/api/auth/token` | POST | None | Poll for auth approval |
-| `/api/sync` | POST | Bearer token | Push workflows + run counts |
+| `/api/explore` | GET | None | Browse/search workflows (?q= for search) |
+| `/api/sync` | POST | Bearer token | Push workflows + run counts, returns pending installs |
 | `/api/workflows/[user]/[slug]` | GET | None | Pull a workflow for install |
 | `/api/updates` | POST | None | Check for newer versions |
 
-### Config
-
-```bash
-CLAWFLOWS_HUB_URL="${CLAWFLOWS_HUB_URL:-http://localhost:3000}"  # Override for dev/prod
-```
-
 ### Architecture notes
 
-- The CLI only syncs `workflows/available/custom/` — community workflows are not pushed
+- The CLI only syncs `workflows/available/custom/` — installed workflows are not pushed back
 - Content changes detected by SHA-256 hash — if hash changed since last sync, a new version is created
-- Install saves to `custom/` just like any other custom workflow — then user runs `clawflows enable` to activate
-- No auto-updates — user must explicitly run `clawflows web update` and re-install
+- Install saves to `available/installed/username/slug/WORKFLOW.md` and auto-enables
+- On first sync after update, community/ workflows are migrated to installed/clawflowsagent/
 - Token-based auth (not Supabase session) — the sync token bypasses RLS via the admin client on the server
-
-### Database schema (in the web repo)
-
-- **agents** — integer IDs, links to auth.users via nullable user_id
-- **workflows** — integer IDs, FK to agents, content stored as text, version as integer
-- **activity** — no denormalized names, all FKs to agents/workflows, join at query time
-- Schema: `clawflows-web/supabase/schema.sql`
+- `HUB_URL` defaults to `https://clawflows.ai` (override with `CLAWFLOWS_HUB_URL` env var)
