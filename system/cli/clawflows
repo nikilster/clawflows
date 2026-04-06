@@ -2554,19 +2554,20 @@ cmd_web() {
     logout)   cmd_web_logout ;;
     whoami)   cmd_web_whoami ;;
     sync)     cmd_web_sync ;;
-    install)  [ -n "${1:-}" ] || die "usage: clawflows web install @username/workflow-name"; cmd_web_install "$1" ;;
-    recommended) cmd_web_recommended ;;
+    install)  [ -n "${1:-}" ] || die "usage: clawflows install <url>"; cmd_web_install "$1" ;;
+    explore)  cmd_web_explore "${1:-}" ;;
+    search)   cmd_web_search "${1:-}" ;;
     update)   cmd_web_update ;;
     *)
       echo "ClawFlows Web commands:"
       echo ""
-      echo "  clawflows web login                        Sign in to ClawFlows Web"
-      echo "  clawflows web sync                         Push your workflows to ClawFlows.ai"
-      echo "  clawflows web install @user/workflow-name   Install a workflow from ClawFlows.ai"
-      echo "  clawflows web recommended                  Show recommended workflows"
-      echo "  clawflows web update                       Check for updates to web-installed workflows"
-      echo "  clawflows web whoami                       Check your login status"
-      echo "  clawflows web logout                       Sign out"
+      echo "  clawflows login [token]                    Sign in to ClawFlows.ai"
+      echo "  clawflows sync                             Push your workflows to ClawFlows.ai"
+      echo "  clawflows explore [query]                  Browse workflows (default: recommended)"
+      echo "  clawflows search <query>                   Search workflows by name"
+      echo "  clawflows install <url>                    Install a workflow from ClawFlows.ai"
+      echo "  clawflows whoami                           Check your login status"
+      echo "  clawflows logout                           Sign out"
       echo ""
       ;;
   esac
@@ -2596,6 +2597,13 @@ case "$1" in
   uninstall) cmd_uninstall ;;
   sync-agent) cmd_sync ;;
   doctor)    cmd_doctor ;;
+  explore)   cmd_web_explore "${2:-}" ;;
+  search)    [ $# -ge 2 ] || die "usage: clawflows search <query>"; cmd_web_search "$2" ;;
+  install)   [ $# -ge 2 ] || die "usage: clawflows install <url>"; cmd_web_install "$2" ;;
+  login)     cmd_web_login "${2:-}" ;;
+  logout)    cmd_web_logout ;;
+  whoami)    cmd_web_whoami ;;
+  sync)      cmd_web_sync ;;
   web)       cmd_web "${2:-}" "${3:-}" ;;
   help|--help|-h) cmd_help ;;
   *)         cmd_help ;;
