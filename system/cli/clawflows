@@ -2268,12 +2268,20 @@ cmd_web_sync() {
     run_counts="$counts_json"
   fi
 
+  # Detect model from OpenClaw
+  local profile_json="{}"
+  local oc_model
+  oc_model="$(openclaw models status --json 2>/dev/null | python3 -c 'import sys,json; print(json.load(sys.stdin).get("resolvedDefault",""))' 2>/dev/null)" || true
+  if [ -n "$oc_model" ]; then
+    profile_json="{\"model\":\"$oc_model\"}"
+  fi
+
   # Send to hub
   local response
   response="$(curl -sf -X POST "$HUB_URL/api/sync" \
     -H "Authorization: Bearer $token" \
     -H "Content-Type: application/json" \
-    -d "{\"workflows\":$workflows_json,\"run_counts\":$run_counts}")" || die "Sync failed. Check your connection and token."
+    -d "{\"profile\":$profile_json,\"workflows\":$workflows_json,\"run_counts\":$run_counts}")" || die "Sync failed. Check your connection and token."
 
   local total created updated
   total="$(printf '%s' "$response" | grep -o '"total":[0-9]*' | sed 's/"total"://')"
@@ -2336,52 +2344,101 @@ print(json.dumps(d))
   echo ""
 }
 
-cmd_web_recommended() {
-  echo ""
-  echo "  Recommended ClawFlows:"
-  echo "  ──────────────────────"
-
-  local response
-  response="$(curl -sf "$HUB_URL/api/recommended")" || die "Could not reach ClawFlows.ai"
-
-  local agent
-  agent="$(printf '%s' "$response" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("agent",""))' 2>/dev/null)"
-
+_print_explore_results() {
+  local response="$1"
   printf '%s' "$response" | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
-agent = d.get('agent', '')
 for wf in d.get('workflows', []):
     emoji = wf.get('emoji', '🔧')
     name = wf.get('name', wf.get('slug', ''))
     desc = wf.get('description', '')
     schedule = wf.get('schedule', '')
-    slug = wf.get('slug', '')
+    url = wf.get('url', '')
     line = f'    {emoji} {name}'
     if schedule:
         line += f'  ({schedule})'
     print(line)
     if desc:
         print(f'       {desc}')
-    print(f'       clawflows web install @{agent}/{slug}')
+    if url:
+        print(f'       clawflows install {url}')
     print()
+count = len(d.get('workflows', []))
+if count == 0:
+    print('    No workflows found.')
 " 2>/dev/null
+}
 
-  echo "  Install any workflow with: clawflows web install @$agent/<name>"
+cmd_web_explore() {
+  local query="${1:-}"
+
+  if [ "$query" = "recommended" ] || [ -z "$query" ]; then
+    echo ""
+    echo "  Recommended ClawFlows:"
+    echo "  ──────────────────────"
+    local response
+    response="$(curl -sf "$HUB_URL/api/explore")" || die "Could not reach ClawFlows.ai"
+    _print_explore_results "$response"
+    echo "  Browse more at https://clawflows.ai"
+    echo ""
+  else
+    echo ""
+    echo "  Exploring: $query"
+    echo "  ──────────────────────"
+    local encoded_query
+    encoded_query="$(printf '%s' "$query" | python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.stdin.read().strip()))' 2>/dev/null)"
+    local response
+    response="$(curl -sf "$HUB_URL/api/explore?q=$encoded_query")" || die "Could not reach ClawFlows.ai"
+    _print_explore_results "$response"
+    echo ""
+  fi
+}
+
+cmd_web_search() {
+  local query="${1:-}"
+  [ -n "$query" ] || die "usage: clawflows search <query>"
+
+  echo ""
+  echo "  Search: $query"
+  echo "  ──────────────────────"
+  local encoded_query
+  encoded_query="$(printf '%s' "$query" | python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.stdin.read().strip()))' 2>/dev/null)"
+  local response
+  response="$(curl -sf "$HUB_URL/api/explore?q=$encoded_query")" || die "Could not reach ClawFlows.ai"
+  _print_explore_results "$response"
   echo ""
 }
 
 cmd_web_install() {
   local ref="$1"
-
-  # Parse @username/workflow-name
   local agent_name workflow_name
-  agent_name="$(printf '%s' "$ref" | sed 's/^@//' | cut -d/ -f1)"
-  workflow_name="$(printf '%s' "$ref" | cut -d/ -f2)"
 
-  [ -n "$agent_name" ] && [ -n "$workflow_name" ] || die "usage: clawflows web install @username/workflow-name"
+  # Parse URL (https://clawflows.ai/username/slug) or @username/slug
+  case "$ref" in
+    https://clawflows.ai/*)
+      # Strip the domain and leading slash
+      local path
+      path="$(printf '%s' "$ref" | sed 's|https://clawflows.ai/||')"
+      agent_name="$(printf '%s' "$path" | cut -d/ -f1)"
+      workflow_name="$(printf '%s' "$path" | cut -d/ -f2)"
+      ;;
+    http*://*)
+      die "Only clawflows.ai URLs are supported"
+      ;;
+    @*)
+      agent_name="$(printf '%s' "$ref" | sed 's/^@//' | cut -d/ -f1)"
+      workflow_name="$(printf '%s' "$ref" | cut -d/ -f2)"
+      ;;
+    *)
+      agent_name="$(printf '%s' "$ref" | cut -d/ -f1)"
+      workflow_name="$(printf '%s' "$ref" | cut -d/ -f2)"
+      ;;
+  esac
 
-  echo "Installing @$agent_name/$workflow_name from ClawFlows Web..."
+  [ -n "$agent_name" ] && [ -n "$workflow_name" ] || die "usage: clawflows install <url>  (e.g. https://clawflows.ai/dave/check-email)"
+
+  echo "Installing @$agent_name/$workflow_name from ClawFlows.ai..."
 
   # Fetch workflow from hub
   local response http_code
