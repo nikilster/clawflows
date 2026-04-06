@@ -2295,6 +2295,57 @@ cmd_web_sync() {
   [ "${created:-0}" -gt 0 ] && echo "     $created new" || true
   [ "${updated:-0}" -gt 0 ] && echo "     $updated updated" || true
 
+  # Sync visibility changes from web back to local frontmatter
+  if [ -d "$CUSTOM_DIR" ]; then
+    local vis_updated=0
+    for dir in "$CUSTOM_DIR"/*/; do
+      [ -d "$dir" ] || continue
+      local wf_file="$dir/WORKFLOW.md"
+      [ -f "$wf_file" ] || continue
+      local wf_slug
+      wf_slug="$(basename "$dir")"
+      local server_vis
+      server_vis="$(printf '%s' "$response" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('visibility',{}).get('$wf_slug',''))" 2>/dev/null)" || true
+      [ -n "$server_vis" ] || continue
+
+      local local_vis
+      local_vis="$(get_field "$wf_file" visibility)"
+      [ -n "$local_vis" ] || local_vis="public"
+
+      if [ "$server_vis" != "$local_vis" ]; then
+        # Update or add visibility in frontmatter using python for reliability
+        python3 -c "
+import sys
+path = sys.argv[1]
+vis = sys.argv[2]
+with open(path, 'r') as f:
+    content = f.read()
+lines = content.split('\n')
+new_lines = []
+in_fm = 0
+replaced = False
+for line in lines:
+    if line.strip() == '---':
+        in_fm += 1
+        if in_fm == 2 and not replaced:
+            new_lines.append('visibility: ' + vis)
+            replaced = True
+        new_lines.append(line)
+        continue
+    if in_fm == 1 and line.startswith('visibility:'):
+        new_lines.append('visibility: ' + vis)
+        replaced = True
+        continue
+    new_lines.append(line)
+with open(path, 'w') as f:
+    f.write('\n'.join(new_lines))
+" "$wf_file" "$server_vis" 2>/dev/null
+        vis_updated=$((vis_updated + 1))
+      fi
+    done
+    [ "$vis_updated" -gt 0 ] && echo "     $vis_updated visibility update(s) from web" || true
+  fi
+
   # Process pending installs from web
   local install_count=0
   local pending
