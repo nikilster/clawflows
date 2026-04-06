@@ -2209,7 +2209,6 @@ cmd_web_sync() {
       category="$(get_field "$wf_file" category)"
       schedule="$(get_field "$wf_file" schedule)"
       visibility="$(get_field "$wf_file" visibility)"
-      [ -n "$visibility" ] || visibility="public"
 
       # Skip no-sync workflows
       if [ "$visibility" = "no-sync" ]; then
@@ -2236,7 +2235,10 @@ cmd_web_sync() {
       local escaped_content
       escaped_content="$(printf '%s' "$content" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))' 2>/dev/null || printf '%s' "$content" | sed 's/\\/\\\\/g;s/"/\\"/g;s/\t/\\t/g' | tr '\n' '\n' | sed ':a;N;$!ba;s/\n/\\n/g')"
 
-      workflows_json="$workflows_json{\"name\":\"$display_name\",\"slug\":\"$slug\",\"emoji\":\"${emoji:-🔧}\",\"description\":$(printf '%s' "$desc" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))'),\"category\":\"${category:-General}\",\"schedule\":$([ -n "$schedule" ] && printf '%s' "\"$schedule\"" || echo null),\"visibility\":\"$visibility\",\"content\":$escaped_content,\"content_hash\":\"$content_hash\"}"
+      local visibility_json=""
+      [ -n "$visibility" ] && visibility_json=",\"visibility\":\"$visibility\""
+
+      workflows_json="$workflows_json{\"name\":\"$display_name\",\"slug\":\"$slug\",\"emoji\":\"${emoji:-🔧}\",\"description\":$(printf '%s' "$desc" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))'),\"category\":\"${category:-General}\",\"schedule\":$([ -n "$schedule" ] && printf '%s' "\"$schedule\"" || echo null)${visibility_json},\"content\":$escaped_content,\"content_hash\":\"$content_hash\"}"
 
       custom_count=$((custom_count + 1))
     done
