@@ -292,6 +292,11 @@ $description
     echo "Scheduled: $schedule"
   fi
   echo "To edit: $workflow_dir/WORKFLOW.md"
+
+  # Auto-sync to web if logged in
+  if [ -f "$HUB_TOKEN_FILE" ]; then
+    cmd_web_sync
+  fi
 }
 
 cmd_create() {
@@ -448,6 +453,11 @@ $description
   fi
   echo "  To edit: $workflow_dir/WORKFLOW.md"
   echo ""
+
+  # Auto-sync to web if logged in
+  if [ -f "$HUB_TOKEN_FILE" ]; then
+    cmd_web_sync
+  fi
 }
 
 cmd_list() {
@@ -2109,7 +2119,7 @@ cmd_web_login() {
     echo ""
     echo "  ✅ Logged in successfully!"
     echo ""
-    echo "  Run 'clawflows web sync' to push your workflows."
+    echo "  Run 'clawflows sync' to push your workflows."
     echo ""
     return
   fi
@@ -2121,7 +2131,7 @@ cmd_web_login() {
   echo ""
   echo "  Then run:"
   echo ""
-  echo "    clawflows web login <your-token>"
+  echo "    clawflows login <your-token>"
   echo ""
 
   # Try to open the site
@@ -2140,7 +2150,7 @@ cmd_web_logout() {
 cmd_web_whoami() {
   local token
   token="$(_hub_get_token)"
-  [ -n "$token" ] || die "Not logged in. Run: clawflows web login"
+  [ -n "$token" ] || die "Not logged in. Run: clawflows login"
 
   # Quick check — try to sync with empty data to verify token
   local response
@@ -2154,14 +2164,14 @@ cmd_web_whoami() {
   if [ -n "$synced" ]; then
     echo "Logged in. Token is valid."
   else
-    echo "Token may be invalid. Try: clawflows web login"
+    echo "Token may be invalid. Try: clawflows login"
   fi
 }
 
 cmd_web_sync() {
   local token
   token="$(_hub_get_token)"
-  [ -n "$token" ] || die "Not logged in. Run: clawflows web login"
+  [ -n "$token" ] || die "Not logged in. Run: clawflows login"
 
   # One-time migration: move enabled community workflows to installed/clawflowsagent/
   if [ -d "$COMMUNITY_DIR" ]; then
@@ -2283,7 +2293,7 @@ cmd_web_sync() {
   response="$(curl -sf -X POST "$HUB_URL/api/sync" \
     -H "Authorization: Bearer $token" \
     -H "Content-Type: application/json" \
-    -d "{\"profile\":$profile_json,\"workflows\":$workflows_json,\"run_counts\":$run_counts}")" || die "Sync failed. Check your connection and token."
+    -d "{\"profile\":$profile_json,\"workflows\":$workflows_json,\"run_counts\":$run_counts}")" || die "Sync failed. Try: clawflows login"
 
   local total created updated
   total="$(printf '%s' "$response" | grep -o '"total":[0-9]*' | sed 's/"total"://')"
@@ -2593,7 +2603,7 @@ print('yes' if d.get('updates') else 'no')
 
   if [ "$has_updates" = "yes" ]; then
     echo "  To update a workflow, re-install it:"
-    echo "    clawflows web install @username/workflow-name"
+    echo "    clawflows install @username/workflow-name"
     echo ""
   fi
 }
