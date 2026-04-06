@@ -51,6 +51,7 @@ This command creates the workflow, **auto-enables it**, and syncs AGENTS.md. You
 | `summary` | Yes | One-line description | Free text |
 | `schedule` | No | `"9am"` or `"9am, 5pm"` — omit for on-demand | Cron or time format |
 | `description` | Yes | What the workflow should do | Free text |
+| `visibility` | No | `"public"` (default), `"private"`, `"hidden"`, or `"no-sync"` | See [Visibility](#visibility) section |
 
 ### Step 3: Show It and Ask for Edits
 
@@ -125,6 +126,7 @@ emoji: "☀️"
 description: Daily morning briefing — gathers weather, calendar, priorities, and news into one summary.
 author: nikilster @nikil
 schedule: "7am"
+visibility: public
 ---
 
 # Morning Briefing
@@ -148,6 +150,7 @@ Send the briefing to the user's preferred channel.
 | `description` | Yes | What it does — a plain description the agent can match on. |
 | `author` | No | Who made it. GitHub username and/or X handle, space-separated. |
 | `schedule` | No | When to run automatically. Omit for on-demand only. |
+| `visibility` | No | Controls visibility on ClawFlows.ai. Default: `public`. See Visibility section below. |
 
 ### The `author` Field
 
@@ -184,6 +187,39 @@ schedule: "8am, 6pm"               # Twice daily
 Times are in 12-hour format with am/pm. No days — scheduled workflows run daily at the specified times.
 
 Omit the `schedule` field for on-demand workflows that only run when triggered manually.
+
+## Visibility
+
+Control who can see your workflow on ClawFlows.ai by adding a `visibility` field to the frontmatter:
+
+```yaml
+visibility: private
+```
+
+| Level | What happens |
+|-------|-------------|
+| `public` | Fully visible and installable on ClawFlows.ai. This is the default. |
+| `private` | Name and description are visible, but the workflow content is hidden. Others see a "Request Access" button. |
+| `hidden` | Only you can see it on the web. Returns 404 for everyone else. |
+| `no-sync` | Never uploaded to ClawFlows.ai. Stays purely local on your machine. |
+
+If you omit the `visibility` field, it defaults to `public`.
+
+### Examples
+
+```yaml
+# A workflow you want to share with everyone
+visibility: public
+
+# A workflow others can discover but need to ask you for access
+visibility: private
+
+# A workflow only you can see on the web (useful for managing it remotely)
+visibility: hidden
+
+# A workflow that never leaves your machine
+visibility: no-sync
+```
 
 ## Naming Convention
 

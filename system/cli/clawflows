@@ -212,13 +212,19 @@ _create_from_json() {
   fi
 
   # Parse JSON fields (|| true for optional fields that may not exist)
-  local name emoji summary schedule author description
+  local name emoji summary schedule author description visibility
   name="$(echo "$json" | grep -o '"name"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\([^"]*\)"/\1/' | head -1 || true)"
   emoji="$(echo "$json" | grep -o '"emoji"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\([^"]*\)"/\1/' | head -1 || true)"
   summary="$(echo "$json" | grep -o '"summary"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\([^"]*\)"/\1/' | head -1 || true)"
   schedule="$(echo "$json" | grep -o '"schedule"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\([^"]*\)"/\1/' | head -1 || true)"
   author="$(echo "$json" | grep -o '"author"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\([^"]*\)"/\1/' | head -1 || true)"
   description="$(echo "$json" | grep -o '"description"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\([^"]*\)"/\1/' | head -1 || true)"
+  visibility="$(echo "$json" | grep -o '"visibility"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\([^"]*\)"/\1/' | head -1 || true)"
+  visibility="${visibility:-public}"
+  case "$visibility" in
+    public|private|hidden|no-sync) ;;
+    *) visibility="public" ;;
+  esac
 
   # Decode JSON escape sequences (e.g. \n from textarea input)
   description="$(printf '%s' "$description" | awk '{gsub(/\\n/,"\n")}1')"
@@ -251,6 +257,11 @@ schedule: \"$schedule\""
   if [ -n "$author" ]; then
     workflow_content="$workflow_content
 author: $author"
+  fi
+
+  if [ -n "$visibility" ] && [ "$visibility" != "public" ]; then
+    workflow_content="$workflow_content
+visibility: $visibility"
   fi
 
   local title
@@ -338,14 +349,30 @@ cmd_create() {
   printf "  Schedule: "
   read -r schedule
 
-  # 5. Author
+  # 5. Visibility
+  echo ""
+  echo "  Visibility on ClawFlows.ai?"
+  echo "    public   — fully visible and installable (default)"
+  echo "    private  — name & description only, others can request access"
+  echo "    hidden   — only visible to you"
+  echo "    no-sync  — never uploaded to the web"
+  printf "  Visibility [public]: "
+  read -r visibility
+  visibility="${visibility:-public}"
+  case "$visibility" in
+    public|private|hidden|no-sync) ;;
+    *) echo "  ⚠️  Unknown visibility '$visibility', defaulting to public"
+       visibility="public" ;;
+  esac
+
+  # 6. Author
   echo ""
   echo "  Your name (optional, for credit)"
   echo "    GitHub username, @twitter, or both: \"nikilster @nikil\""
   printf "  You: "
   read -r author
 
-  # 6. Description
+  # 7. Description
   echo ""
   echo "  Describe what this workflow does."
   echo "  What should the agent do when running it? Be specific."
@@ -378,6 +405,11 @@ schedule: \"$schedule\""
   if [ -n "$author" ]; then
     workflow_content="$workflow_content
 author: $author"
+  fi
+
+  if [ "$visibility" != "public" ]; then
+    workflow_content="$workflow_content
+visibility: $visibility"
   fi
 
   local title
@@ -2169,13 +2201,21 @@ cmd_web_sync() {
       local wf_file="$dir/WORKFLOW.md"
       [ -f "$wf_file" ] || continue
 
-      local name slug emoji desc category schedule content content_hash
+      local name slug emoji desc category schedule visibility content content_hash
       name="$(basename "$dir")"
       slug="$name"
       emoji="$(get_field "$wf_file" emoji)"
       desc="$(get_field "$wf_file" description)"
       category="$(get_field "$wf_file" category)"
       schedule="$(get_field "$wf_file" schedule)"
+      visibility="$(get_field "$wf_file" visibility)"
+      [ -n "$visibility" ] || visibility="public"
+
+      # Skip no-sync workflows
+      if [ "$visibility" = "no-sync" ]; then
+        continue
+      fi
+
       content="$(cat "$wf_file")"
       content_hash="$(shasum -a 256 "$wf_file" | cut -d' ' -f1)"
 
@@ -2196,7 +2236,7 @@ cmd_web_sync() {
       local escaped_content
       escaped_content="$(printf '%s' "$content" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))' 2>/dev/null || printf '%s' "$content" | sed 's/\\/\\\\/g;s/"/\\"/g;s/\t/\\t/g' | tr '\n' '\n' | sed ':a;N;$!ba;s/\n/\\n/g')"
 
-      workflows_json="$workflows_json{\"name\":\"$display_name\",\"slug\":\"$slug\",\"emoji\":\"${emoji:-🔧}\",\"description\":$(printf '%s' "$desc" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))'),\"category\":\"${category:-General}\",\"schedule\":$([ -n "$schedule" ] && printf '%s' "\"$schedule\"" || echo null),\"content\":$escaped_content,\"content_hash\":\"$content_hash\"}"
+      workflows_json="$workflows_json{\"name\":\"$display_name\",\"slug\":\"$slug\",\"emoji\":\"${emoji:-🔧}\",\"description\":$(printf '%s' "$desc" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))'),\"category\":\"${category:-General}\",\"schedule\":$([ -n "$schedule" ] && printf '%s' "\"$schedule\"" || echo null),\"visibility\":\"$visibility\",\"content\":$escaped_content,\"content_hash\":\"$content_hash\"}"
 
       custom_count=$((custom_count + 1))
     done
@@ -2344,8 +2384,14 @@ cmd_web_install() {
   echo "Installing @$agent_name/$workflow_name from ClawFlows Web..."
 
   # Fetch workflow from hub
-  local response
-  response="$(curl -sf "$HUB_URL/api/workflows/$agent_name/$workflow_name")" || die "Workflow not found: @$agent_name/$workflow_name"
+  local response http_code
+  http_code="$(curl -s -o /tmp/clawflows_install.json -w '%{http_code}' "$HUB_URL/api/workflows/$agent_name/$workflow_name")"
+  if [ "$http_code" = "403" ]; then
+    die "This workflow is private. Contact the owner to request access."
+  elif [ "$http_code" != "200" ]; then
+    die "Workflow not found: @$agent_name/$workflow_name"
+  fi
+  response="$(cat /tmp/clawflows_install.json)"
 
   local content version name
   content="$(printf '%s' "$response" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("content",""))' 2>/dev/null)"
