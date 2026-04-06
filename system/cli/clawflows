@@ -2296,6 +2296,41 @@ print(json.dumps(d))
   echo ""
 }
 
+cmd_web_recommended() {
+  echo ""
+  echo "  Recommended ClawFlows:"
+  echo "  ──────────────────────"
+
+  local response
+  response="$(curl -sf "$HUB_URL/api/recommended")" || die "Could not reach ClawFlows.ai"
+
+  local agent
+  agent="$(printf '%s' "$response" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("agent",""))' 2>/dev/null)"
+
+  printf '%s' "$response" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+agent = d.get('agent', '')
+for wf in d.get('workflows', []):
+    emoji = wf.get('emoji', '🔧')
+    name = wf.get('name', wf.get('slug', ''))
+    desc = wf.get('description', '')
+    schedule = wf.get('schedule', '')
+    slug = wf.get('slug', '')
+    line = f'    {emoji} {name}'
+    if schedule:
+        line += f'  ({schedule})'
+    print(line)
+    if desc:
+        print(f'       {desc}')
+    print(f'       clawflows web install @{agent}/{slug}')
+    print()
+" 2>/dev/null
+
+  echo "  Install any workflow with: clawflows web install @$agent/<name>"
+  echo ""
+}
+
 cmd_web_install() {
   local ref="$1"
 
@@ -2417,6 +2452,7 @@ cmd_web() {
     whoami)   cmd_web_whoami ;;
     sync)     cmd_web_sync ;;
     install)  [ -n "${1:-}" ] || die "usage: clawflows web install @username/workflow-name"; cmd_web_install "$1" ;;
+    recommended) cmd_web_recommended ;;
     update)   cmd_web_update ;;
     *)
       echo "ClawFlows Web commands:"
@@ -2424,6 +2460,7 @@ cmd_web() {
       echo "  clawflows web login                        Sign in to ClawFlows Web"
       echo "  clawflows web sync                         Push your workflows to ClawFlows.ai"
       echo "  clawflows web install @user/workflow-name   Install a workflow from ClawFlows.ai"
+      echo "  clawflows web recommended                  Show recommended workflows"
       echo "  clawflows web update                       Check for updates to web-installed workflows"
       echo "  clawflows web whoami                       Check your login status"
       echo "  clawflows web logout                       Sign out"
