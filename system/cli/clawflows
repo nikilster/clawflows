@@ -2339,7 +2339,13 @@ cmd_web_whoami() {
   local synced
   synced="$(printf '%s' "$response" | grep -o '"synced":true')"
   if [ -n "$synced" ]; then
-    echo "Logged in. Token is valid."
+    local username
+    username="$(printf '%s' "$response" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("agent",{}).get("username",""))' 2>/dev/null)" || true
+    if [ -n "$username" ]; then
+      echo "Logged in as @$username"
+    else
+      echo "Logged in. Token is valid."
+    fi
   else
     echo "Token may be invalid. Try: clawflows login"
   fi
