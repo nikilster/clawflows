@@ -2365,22 +2365,23 @@ cmd_web_sync() {
     echo "  Migrated workflows/ to clawflows/"
   fi
 
-  # One-time migration: rename custom/ to created/ (check both old locations)
-  local old_custom_dir="$CLAWFLOWS_DIR/clawflows/available/custom"
-  if [ -d "$old_custom_dir" ]; then
-    mkdir -p "$CREATED_DIR"
-    for wf in "$old_custom_dir"/*/; do
-      [ -d "$wf" ] || continue
-      local wf_name
-      wf_name="$(basename "$wf")"
-      [ "$wf_name" = ".gitkeep" ] && continue
-      if [ ! -d "$CREATED_DIR/$wf_name" ]; then
-        mv "$wf" "$CREATED_DIR/$wf_name"
-      fi
-    done
-    rm -rf "$old_custom_dir"
-    echo "  Migrated custom/ to created/"
-  fi
+  # One-time migration: rename custom/ to created/ (check all old locations)
+  for old_custom_dir in "$CLAWFLOWS_DIR/clawflows/available/custom" "$CLAWFLOWS_DIR/clawflows/custom"; do
+    if [ -d "$old_custom_dir" ]; then
+      mkdir -p "$CREATED_DIR"
+      for wf in "$old_custom_dir"/*/; do
+        [ -d "$wf" ] || continue
+        local wf_name
+        wf_name="$(basename "$wf")"
+        [ "$wf_name" = ".gitkeep" ] && continue
+        if [ ! -d "$CREATED_DIR/$wf_name" ]; then
+          mv "$wf" "$CREATED_DIR/$wf_name"
+        fi
+      done
+      rm -rf "$old_custom_dir"
+      echo "  Migrated custom/ to created/"
+    fi
+  done
 
   # One-time migration: move available/ contents up to clawflows/
   local old_available_dir="$CLAWFLOWS_DIR/clawflows/available"
