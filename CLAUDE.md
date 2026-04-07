@@ -12,11 +12,11 @@ clawflows/
 │   ├── AGENT.md               # Agent reference guide
 │   ├── scheduler.md           # Scheduler instructions
 │   └── runs/                  # Execution history (gitignored)
-├── workflows/
+├── clawflows/
 │   ├── available/
-│   │   ├── custom/            # User-created workflows (gitignored)
+│   │   ├── created/           # User-created clawflows (gitignored)
 │   │   └── installed/         # From clawflows.ai (namespaced: {agent_id}/{slug}/)
-│   └── enabled/               # Symlinks to active workflows (gitignored)
+│   └── enabled/               # Symlinks to active clawflows (gitignored)
 └── docs/
     └── creating-workflows.md  # Workflow creation guide
 ```
@@ -24,14 +24,14 @@ clawflows/
 ## Key Architecture Decisions
 
 ### Symlink-Based Activation
-- `enable` creates symlink: `enabled/name → available/custom/name` or `available/installed/{agent_id}/name`
+- `enable` creates symlink: `enabled/name → available/created/name` or `available/installed/{agent_id}/name`
 - `disable` removes symlink only (never deletes files)
-- Custom workflows override installed by name
+- Created clawflows override installed by name
 
 ### What's Gitignored
-- `workflows/enabled/*` — user's active workflows
-- `workflows/available/custom/*` — user's custom workflows
-- `workflows/available/installed/*` — workflows installed from clawflows.ai
+- `clawflows/enabled/*` — user's active clawflows
+- `clawflows/available/created/*` — user's created clawflows
+- `clawflows/available/installed/*` — clawflows installed from clawflows.ai
 - `system/runs/` — execution history
 
 ### AGENTS.md Sync (Critical!)
@@ -225,7 +225,7 @@ The `clawflows web <cmd>` prefix still works as an alias.
 
 ### Architecture notes
 
-- The CLI only syncs `workflows/available/custom/` — installed workflows are not pushed back
+- The CLI only syncs `clawflows/available/created/` — installed clawflows are not pushed back
 - Content changes detected by SHA-256 hash — if hash changed since last sync, a new version is created
 - Install saves to `available/installed/{agent_id}/{slug}/WORKFLOW.md` with `.agent.json` for display name
 - Each agent dir has `.agent.json`: `{"agent_id": 7, "username": "dave"}`

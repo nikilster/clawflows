@@ -23,12 +23,12 @@ git pull origin main
 
 ## 4. Copy to community workflows
 
-Copy each new submission from `community-submissions/` to `workflows/available/community/`:
+Copy each new submission from `community-submissions/` to `clawflows/available/community/`:
 
 ```bash
 # For each new workflow:
-mkdir -p workflows/available/community/<name>
-cp community-submissions/<name>/WORKFLOW.md workflows/available/community/<name>/WORKFLOW.md
+mkdir -p clawflows/available/community/<name>
+cp community-submissions/<name>/WORKFLOW.md clawflows/available/community/<name>/WORKFLOW.md
 ```
 
 ## 5. Update README.md
@@ -38,7 +38,7 @@ cp community-submissions/<name>/WORKFLOW.md workflows/available/community/<name>
 Add a row to the `🌎 Community Created Workflows` table:
 
 ```
-| emoji [name](workflows/available/community/name/WORKFLOW.md) | Schedule | Description | [@handle](https://x.com/handle) |
+| emoji [name](clawflows/available/community/name/WORKFLOW.md) | Schedule | Description | [@handle](https://x.com/handle) |
 ```
 
 - **Schedule**: From the workflow's `schedule:` frontmatter field, or "On-demand" if absent
@@ -59,7 +59,7 @@ In the `🏆 Top Contributors` table:
 Update the header line `Including N prebuilt workflows you can enable in 1 click` with the new total. Verify with:
 
 ```bash
-ls -d workflows/available/community/*/ | wc -l
+ls -d clawflows/available/community/*/ | wc -l
 ```
 
 ## 6. Commit and push
@@ -67,7 +67,7 @@ ls -d workflows/available/community/*/ | wc -l
 Stage only the files you changed:
 
 ```bash
-git add .gitignore README.md workflows/available/community/<new-workflow-dirs>
+git add .gitignore README.md clawflows/available/community/<new-workflow-dirs>
 git commit -m "Add <workflow-name> community workflow and update README"
 git push
 ```
@@ -86,4 +86,4 @@ git push
 - All H1 headings (`#`) must have an emoji prefix and a `<br>` tag on the line before them
 - Workflow tables have 3 columns: `Workflow | Schedule | What it does` (plus `Author` for community-created)
 - Schedule column shows the time from frontmatter, or "On-demand" if absent
-- All workflow authors in `workflows/available/community/` should use `@davehappyminion` (not `@openclaw`)
+- All workflow authors in `clawflows/available/community/` should use `@davehappyminion` (not `@openclaw`)

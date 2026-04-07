@@ -26,10 +26,10 @@ setup_test_environment() {
     export BACKUP_DIR="${TEST_TMPDIR}/backups"
 
     # These would normally be set by the CLI, but we set them for testing
-    export CREATED_DIR="${CLAWFLOWS_DIR}/workflows/available/created"
-    export COMMUNITY_DIR="${CLAWFLOWS_DIR}/workflows/available/community"
-    export INSTALLED_DIR="${CLAWFLOWS_DIR}/workflows/available/installed"
-    export ENABLED_DIR="${CLAWFLOWS_DIR}/workflows/enabled"
+    export CREATED_DIR="${CLAWFLOWS_DIR}/clawflows/available/created"
+    export COMMUNITY_DIR="${CLAWFLOWS_DIR}/clawflows/available/community"
+    export INSTALLED_DIR="${CLAWFLOWS_DIR}/clawflows/available/installed"
+    export ENABLED_DIR="${CLAWFLOWS_DIR}/clawflows/enabled"
 
     # Create directory structure
     mkdir -p "$CREATED_DIR"

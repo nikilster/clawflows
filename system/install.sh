@@ -111,8 +111,8 @@ fi
 
 # ── 2. Create directories ───────────────────────────────────────────────────
 
-mkdir -p "$INSTALL_DIR/workflows/enabled"
-mkdir -p "$INSTALL_DIR/workflows/available/created"
+mkdir -p "$INSTALL_DIR/clawflows/enabled"
+mkdir -p "$INSTALL_DIR/clawflows/available/created"
 mkdir -p "$INSTALL_DIR/system/runs"
 
 # ── 3. Symlink the CLI ──────────────────────────────────────────────────────
@@ -266,8 +266,8 @@ fi
 # ── 9. Count workflows ──────────────────────────────────────────────────────
 
 workflow_count=0
-if [ -d "$INSTALL_DIR/workflows/available" ]; then
-  workflow_count=$( (ls -d "$INSTALL_DIR/workflows/available"/community/*/ "$INSTALL_DIR/workflows/available"/created/*/ 2>/dev/null || true) | wc -l | tr -d ' ')
+if [ -d "$INSTALL_DIR/clawflows/available" ]; then
+  workflow_count=$( (ls -d "$INSTALL_DIR/clawflows/available"/community/*/ "$INSTALL_DIR/clawflows/available"/created/*/ 2>/dev/null || true) | wc -l | tr -d ' ')
 fi
 
 # ── Done ─────────────────────────────────────────────────────────────────────
@@ -318,7 +318,7 @@ if ! $RESTORED_BACKUP && [ -t 1 ]; then
 
   if [ "$essentials_confirm" != "n" ] && [ "$essentials_confirm" != "N" ]; then
     for wf in "${ESSENTIALS[@]}"; do
-      if [ -d "$INSTALL_DIR/workflows/available/community/$wf" ] || [ -d "$INSTALL_DIR/workflows/available/created/$wf" ]; then
+      if [ -d "$INSTALL_DIR/clawflows/available/community/$wf" ] || [ -d "$INSTALL_DIR/clawflows/available/created/$wf" ]; then
         "$BIN_TARGET" enable "$wf" >/dev/null 2>/dev/null
       fi
     done

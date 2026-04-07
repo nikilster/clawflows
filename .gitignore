@@ -1,7 +1,7 @@
-workflows/enabled/*
-!workflows/enabled/.gitkeep
-workflows/available/created/*
-!workflows/available/created/.gitkeep
+clawflows/enabled/*
+!clawflows/enabled/.gitkeep
+clawflows/available/created/*
+!clawflows/available/created/.gitkeep
 system/runs/
 system/.dashboard-state
 .vercel

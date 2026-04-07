@@ -8,7 +8,7 @@ Note the current time and date.
 
 ## 2. Read Enabled Workflows
 
-List all workflows in `workflows/enabled/`. For each one, read the `WORKFLOW.md` frontmatter to get:
+List all workflows in `clawflows/enabled/`. For each one, read the `WORKFLOW.md` frontmatter to get:
 - `name`
 - `schedule` (if present)
 
@@ -68,6 +68,6 @@ If nothing was due, respond with `HEARTBEAT_OK`.
 ## Notes
 
 - This runs every 15 minutes via cron
-- Workflows are in `workflows/enabled/`, not `workflows/available/`
+- Workflows are in `clawflows/enabled/`, not `clawflows/available/`
 - Only run workflows with a `schedule` field
 - Respect the run history — don't double-run

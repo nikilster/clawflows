@@ -18,10 +18,10 @@ _oc_workspace="${_oc_workspace:-$HOME/.openclaw/workspace}"
 
 AGENTS_MD="${AGENTS_MD:-$_oc_workspace/AGENTS.md}"
 BACKUP_DIR="${BACKUP_DIR:-$_oc_workspace/clawflows-backups}"
-COMMUNITY_DIR="$CLAWFLOWS_DIR/workflows/available/community"
-CREATED_DIR="$CLAWFLOWS_DIR/workflows/available/created"
-INSTALLED_DIR="$CLAWFLOWS_DIR/workflows/available/installed"
-ENABLED_DIR="$CLAWFLOWS_DIR/workflows/enabled"
+COMMUNITY_DIR="$CLAWFLOWS_DIR/clawflows/available/community"
+CREATED_DIR="$CLAWFLOWS_DIR/clawflows/available/created"
+INSTALLED_DIR="$CLAWFLOWS_DIR/clawflows/available/installed"
+ENABLED_DIR="$CLAWFLOWS_DIR/clawflows/enabled"
 SUBMISSIONS_DIR="$CLAWFLOWS_DIR/community-submissions"
 BIN_TARGET="$HOME/.local/bin/clawflows"
 
@@ -120,8 +120,8 @@ cmd_help() {
   printf "  ${CMD}clawflows validate my-workflow${R}          ${M}Check your workflow is valid${R}\n"
 
   printf "\n${H}How it works${R}\n"
-  printf "  Workflows live in ~/.openclaw/workspace/clawflows/workflows/\n"
-  printf "  ${M}•${R} available/created/    — your own workflows\n"
+  printf "  Clawflows live in ~/.openclaw/workspace/clawflows/clawflows/\n"
+  printf "  ${M}•${R} available/created/    — your own clawflows\n"
   printf "  ${M}•${R} available/installed/  — installed from clawflows.ai\n"
   printf "  ${M}•${R} enabled/              — symlinks to active workflows\n"
   printf "\n  When you enable a workflow, a symlink is created. Disable removes\n"
@@ -936,9 +936,9 @@ _build_block() {
   lines+=("4. Keep it brief — just mention what's missing, don't list services they already have.")
   lines+=("")
   lines+=("### ⚠️ Never Write Directly to \`enabled/\`")
-  lines+=("The \`workflows/enabled/\` folder should **ONLY contain symlinks**. Never create, copy, or edit files directly in \`enabled/\`.")
+  lines+=("The \`clawflows/enabled/\` folder should **ONLY contain symlinks**. Never create, copy, or edit files directly in \`enabled/\`.")
   lines+=("- **New workflow** → \`clawflows create --from-json\`")
-  lines+=("- **Edit a workflow** → edit the source in \`workflows/available/created/<name>/WORKFLOW.md\`")
+  lines+=("- **Edit a workflow** → edit the source in \`clawflows/available/created/<name>/WORKFLOW.md\`")
   lines+=("- **Customize an installed workflow** → \`clawflows edit <name>\` (copies to created/ for safe editing)")
   lines+=("- Writing directly to \`enabled/\` causes drift, breaks symlinks, and can be overwritten by updates.")
   lines+=("")
@@ -968,9 +968,9 @@ _build_block() {
   lines+=("If the user asks for something that sounds like a workflow but you're not sure which one, run \`clawflows list\` and find the best match. If no existing workflow fits, offer to create one.")
   lines+=("")
   lines+=("### Workflow Locations")
-  lines+=("- **Community workflows:** \`$CLAWFLOWS_DIR/workflows/available/community/\`")
-  lines+=("- **Created workflows:** \`$CLAWFLOWS_DIR/workflows/available/created/\`")
-  lines+=("- **Enabled workflows:** \`$CLAWFLOWS_DIR/workflows/enabled/\` (symlinks)")
+  lines+=("- **Community workflows:** \`$CLAWFLOWS_DIR/clawflows/available/community/\`")
+  lines+=("- **Created workflows:** \`$CLAWFLOWS_DIR/clawflows/available/created/\`")
+  lines+=("- **Enabled workflows:** \`$CLAWFLOWS_DIR/clawflows/enabled/\` (symlinks)")
   lines+=("- Each workflow has a \`WORKFLOW.md\` — this is the file you read and follow when running it")
   lines+=("- Enabling creates a symlink in \`enabled/\` pointing to \`created/\` or \`installed/\`. Disabling removes the symlink — no data is deleted.")
   lines+=("")
@@ -2193,8 +2193,24 @@ cmd_web_sync() {
   token="$(_hub_get_token)"
   [ -n "$token" ] || die "Not logged in. Run: clawflows login"
 
+  # One-time migration: rename workflows/ to clawflows/
+  local old_workflows_dir="$CLAWFLOWS_DIR/workflows"
+  if [ -d "$old_workflows_dir" ] && [ ! -d "$CLAWFLOWS_DIR/clawflows" ]; then
+    mv "$old_workflows_dir" "$CLAWFLOWS_DIR/clawflows"
+    echo "  Migrated workflows/ to clawflows/"
+  elif [ -d "$old_workflows_dir" ] && [ -d "$CLAWFLOWS_DIR/clawflows" ]; then
+    # Both exist — move contents from old to new
+    for sub in available enabled; do
+      if [ -d "$old_workflows_dir/$sub" ]; then
+        cp -rn "$old_workflows_dir/$sub/"* "$CLAWFLOWS_DIR/clawflows/$sub/" 2>/dev/null || true
+      fi
+    done
+    rm -rf "$old_workflows_dir"
+    echo "  Migrated workflows/ to clawflows/"
+  fi
+
   # One-time migration: rename custom/ to created/
-  local old_custom_dir="$CLAWFLOWS_DIR/workflows/available/custom"
+  local old_custom_dir="$CLAWFLOWS_DIR/clawflows/available/custom"
   if [ -d "$old_custom_dir" ]; then
     if [ -d "$CREATED_DIR" ]; then
       # Merge: move any workflows from custom/ that aren't already in created/
