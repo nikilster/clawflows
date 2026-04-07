@@ -2418,21 +2418,6 @@ print(json.dumps(d))
   fi
 
   [ "$install_count" -gt 0 ] && echo "     $install_count installed from web" || true
-
-  # Auto-install sync-clawflows-web on first sync if not already present
-  if [ ! -d "$INSTALLED_DIR/clawflowsagent/sync-clawflows-web" ] && [ ! -d "$CUSTOM_DIR/sync-clawflows-web" ]; then
-    local sync_source="$CLAWFLOWS_DIR/workflows/available/community/sync-clawflows-web"
-    if [ -f "$sync_source/WORKFLOW.md" ]; then
-      local sync_dest="$INSTALLED_DIR/clawflowsagent/sync-clawflows-web"
-      mkdir -p "$sync_dest"
-      cp "$sync_source/WORKFLOW.md" "$sync_dest/WORKFLOW.md"
-      if [ ! -L "$ENABLED_DIR/sync-clawflows-web" ] && [ ! -d "$ENABLED_DIR/sync-clawflows-web" ]; then
-        ln -s "$sync_dest" "$ENABLED_DIR/sync-clawflows-web"
-      fi
-      echo "     Auto-installed sync-clawflows-web (syncs 2x daily)"
-    fi
-  fi
-
   echo ""
 }
 
