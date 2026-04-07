@@ -2641,12 +2641,32 @@ print(v)
   local clawflows_json
   clawflows_json="$(_json_read)"
 
+  # Collect capabilities from OpenClaw (skills + plugins)
+  local capabilities_json="[]"
+  if command -v openclaw >/dev/null 2>&1; then
+    capabilities_json="$(python3 -c '
+import json, subprocess, sys
+caps = []
+try:
+    sk = json.loads(subprocess.run(["openclaw","skills","list","--eligible","--json"], capture_output=True, text=True).stdout)
+    for s in sk.get("skills", []):
+        caps.append({"slug":"skill/"+s["name"], "kind":"skill", "name":s["name"].replace("-"," ").title(), "emoji":s.get("emoji",""), "description":(s.get("description","") or "")[:200], "homepage_url":s.get("homepage"), "meta":{"source":s.get("source","")}})
+except: pass
+try:
+    pl = json.loads(subprocess.run(["openclaw","plugins","list","--enabled","--json"], capture_output=True, text=True).stdout)
+    for p in pl.get("plugins", []):
+        caps.append({"slug":"plugin/"+p["id"], "kind":"plugin", "name":p["name"], "emoji":"", "description":(p.get("description","") or "")[:200], "meta":{"tool_names":p.get("toolNames",[])}})
+except: pass
+print(json.dumps(caps))
+' 2>/dev/null)" || capabilities_json="[]"
+  fi
+
   # Send to hub
   local response
   response="$(curl -sf -X POST "$HUB_URL/api/sync" \
     -H "Authorization: Bearer $token" \
     -H "Content-Type: application/json" \
-    -d "{\"profile\":$profile_json,\"workflows\":$workflows_json,\"run_counts\":$run_counts,\"clawflows\":$clawflows_json}")" || die "Sync failed. Try: clawflows login"
+    -d "{\"profile\":$profile_json,\"workflows\":$workflows_json,\"run_counts\":$run_counts,\"clawflows\":$clawflows_json,\"capabilities\":$capabilities_json}")" || die "Sync failed. Try: clawflows login"
 
   local total created updated
   total="$(printf '%s' "$response" | grep -o '"total":[0-9]*' | sed 's/"total"://')"
