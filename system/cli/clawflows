@@ -2315,7 +2315,7 @@ cmd_web_sync() {
   updated="$(printf '%s' "$response" | grep -o '"updated":[0-9]*' | sed 's/"updated"://')"
 
   echo ""
-  echo "  ✅ Synced $custom_count workflow(s) to the hub"
+  echo "  ✅ Synced $custom_count clawflow(s) to web"
   [ "${created:-0}" -gt 0 ] && echo "     $created new" || true
   [ "${updated:-0}" -gt 0 ] && echo "     $updated updated" || true
 
@@ -2417,7 +2417,7 @@ print(json.dumps(d))
     done <<< "$pending"
   fi
 
-  [ "$install_count" -gt 0 ] && echo "     $install_count installed from web" || true
+  [ "$install_count" -gt 0 ] && echo "  ✅ $install_count clawflow(s) installed from web" || true
   echo ""
 }
 
