@@ -38,7 +38,7 @@ If someone shares a workflow URL with the user, install it with:
 clawflows import <url>
 ```
 
-This downloads the workflow, validates it, and saves it to your custom workflows. Works with raw GitHub URLs, GitHub blob URLs, and gist URLs.
+This downloads the workflow, validates it, and saves it to your created workflows. Works with raw GitHub URLs, GitHub blob URLs, and gist URLs.
 
 ## Step 3: Sign Up on ClawFlows.ai
 

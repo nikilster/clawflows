@@ -112,7 +112,7 @@ fi
 # ── 2. Create directories ───────────────────────────────────────────────────
 
 mkdir -p "$INSTALL_DIR/workflows/enabled"
-mkdir -p "$INSTALL_DIR/workflows/available/custom"
+mkdir -p "$INSTALL_DIR/workflows/available/created"
 mkdir -p "$INSTALL_DIR/system/runs"
 
 # ── 3. Symlink the CLI ──────────────────────────────────────────────────────
@@ -201,7 +201,7 @@ else
 fi
 
 # ── 6. Restore from backup ──────────────────────────────────────────────────
-# If the user had a previous install, restore their custom workflows and
+# If the user had a previous install, restore their created workflows and
 # enabled list automatically. This preserves their setup across reinstalls.
 
 BACKUP_DIR="${BACKUP_DIR:-$_oc_workspace/clawflows-backups}"
@@ -223,7 +223,7 @@ if [ -d "$BACKUP_DIR" ] && ls "$BACKUP_DIR"/*.tar.gz >/dev/null 2>&1; then
       printf "  Found %s backups — latest: ${CYAN}%s${RESET}\n" "$backup_count" "$latest_name"
     fi
     echo ""
-    printf "  Restore your custom workflows and enabled list? [Y/n] "
+    printf "  Restore your created workflows and enabled list? [Y/n] "
     read -r restore_confirm </dev/tty 2>/dev/null || restore_confirm="y"
 
     if [ "$restore_confirm" != "n" ] && [ "$restore_confirm" != "N" ]; then
@@ -267,7 +267,7 @@ fi
 
 workflow_count=0
 if [ -d "$INSTALL_DIR/workflows/available" ]; then
-  workflow_count=$( (ls -d "$INSTALL_DIR/workflows/available"/community/*/ "$INSTALL_DIR/workflows/available"/custom/*/ 2>/dev/null || true) | wc -l | tr -d ' ')
+  workflow_count=$( (ls -d "$INSTALL_DIR/workflows/available"/community/*/ "$INSTALL_DIR/workflows/available"/created/*/ 2>/dev/null || true) | wc -l | tr -d ' ')
 fi
 
 # ── Done ─────────────────────────────────────────────────────────────────────
@@ -318,7 +318,7 @@ if ! $RESTORED_BACKUP && [ -t 1 ]; then
 
   if [ "$essentials_confirm" != "n" ] && [ "$essentials_confirm" != "N" ]; then
     for wf in "${ESSENTIALS[@]}"; do
-      if [ -d "$INSTALL_DIR/workflows/available/community/$wf" ] || [ -d "$INSTALL_DIR/workflows/available/custom/$wf" ]; then
+      if [ -d "$INSTALL_DIR/workflows/available/community/$wf" ] || [ -d "$INSTALL_DIR/workflows/available/created/$wf" ]; then
         "$BIN_TARGET" enable "$wf" >/dev/null 2>/dev/null
       fi
     done

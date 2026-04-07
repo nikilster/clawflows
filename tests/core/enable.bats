@@ -54,10 +54,10 @@ teardown() {
     run_clawflows enable test-workflow
 
     assert_success
-    # Should link to custom, not installed
+    # Should link to created, not installed
     local target
     target="$(readlink "${ENABLED_DIR}/test-workflow")"
-    assert [ "$target" = "${CUSTOM_DIR}/test-workflow" ]
+    assert [ "$target" = "${CREATED_DIR}/test-workflow" ]
 }
 
 @test "enable: already-enabled workflow is idempotent" {
@@ -109,7 +109,7 @@ teardown() {
 # Edge Cases
 # ============================================================================
 
-@test "enable: workflow with custom already enabled links to custom" {
+@test "enable: workflow with custom already enabled links to created" {
     create_installed_workflow "my-workflow" "🌍" "Installed version"
     create_custom_workflow "my-workflow" "🏠" "Custom version"
 
@@ -118,7 +118,7 @@ teardown() {
     assert_success
     local target
     target="$(readlink "${ENABLED_DIR}/my-workflow")"
-    [[ "$target" == *"custom"* ]]
+    [[ "$target" == *"created"* ]]
 }
 
 @test "enable: multiple workflows can be enabled" {

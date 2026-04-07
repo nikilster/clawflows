@@ -70,12 +70,12 @@ teardown() {
 
     assert_success
     assert_output --partial "Opening"
-    assert_output --partial "custom"
+    assert_output --partial "created"
 }
 
 @test "open: missing WORKFLOW.md fails" {
     # Create directory but no WORKFLOW.md
-    mkdir -p "${CUSTOM_DIR}/broken-workflow"
+    mkdir -p "${CREATED_DIR}/broken-workflow"
 
     run_clawflows open broken-workflow
 

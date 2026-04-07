@@ -81,7 +81,7 @@ const server = http.createServer(function (req, res) {
     return;
   }
 
-  // POST /api/edit/<name> — copy to custom if needed, then open in editor
+  // POST /api/edit/<name> — copy to created/ if needed, then open in editor
   var editMatch = req.method === 'POST' && req.url.match(/^\/api\/edit\/([a-zA-Z0-9_-]+)$/);
   if (editMatch) {
     var ename = editMatch[1];

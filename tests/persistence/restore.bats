@@ -22,8 +22,8 @@ teardown() {
     run_clawflows restore "test-backup.tar.gz"
 
     assert_success
-    assert [ -d "${CUSTOM_DIR}/restored-workflow" ]
-    assert [ -f "${CUSTOM_DIR}/restored-workflow/WORKFLOW.md" ]
+    assert [ -d "${CREATED_DIR}/restored-workflow" ]
+    assert [ -f "${CREATED_DIR}/restored-workflow/WORKFLOW.md" ]
 }
 
 @test "restore: re-enables workflows from backup" {
@@ -53,7 +53,7 @@ teardown() {
     assert_output --partial "Skipped"
 
     # Should still have local version
-    run cat "${CUSTOM_DIR}/my-custom/WORKFLOW.md"
+    run cat "${CREATED_DIR}/my-custom/WORKFLOW.md"
     assert_output --partial "Local version"
 }
 
@@ -66,7 +66,7 @@ teardown() {
 
     assert_success
     # Should restore from the newer backup (sorted reverse alphabetically)
-    assert [ -d "${CUSTOM_DIR}/new-workflow" ]
+    assert [ -d "${CREATED_DIR}/new-workflow" ]
 }
 
 @test "restore: with specific file path" {
@@ -75,7 +75,7 @@ teardown() {
     run_clawflows restore "${BACKUP_DIR}/specific-backup.tar.gz"
 
     assert_success
-    assert [ -d "${CUSTOM_DIR}/specific-workflow" ]
+    assert [ -d "${CREATED_DIR}/specific-workflow" ]
 }
 
 @test "restore: with corrupted backup restores nothing" {
@@ -145,7 +145,7 @@ teardown() {
 
     assert_success
     assert_output --partial "Restored 3"
-    assert [ -d "${CUSTOM_DIR}/wf-1" ]
-    assert [ -d "${CUSTOM_DIR}/wf-2" ]
-    assert [ -d "${CUSTOM_DIR}/wf-3" ]
+    assert [ -d "${CREATED_DIR}/wf-1" ]
+    assert [ -d "${CREATED_DIR}/wf-2" ]
+    assert [ -d "${CREATED_DIR}/wf-3" ]
 }

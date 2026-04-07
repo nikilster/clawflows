@@ -80,8 +80,8 @@ teardown() {
 
     assert_success
     # Custom workflow should still exist
-    assert [ -d "${CUSTOM_DIR}/my-custom" ]
-    assert [ -f "${CUSTOM_DIR}/my-custom/WORKFLOW.md" ]
+    assert [ -d "${CREATED_DIR}/my-custom" ]
+    assert [ -f "${CREATED_DIR}/my-custom/WORKFLOW.md" ]
 }
 
 @test "disable: can disable and re-enable" {

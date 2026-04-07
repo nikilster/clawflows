@@ -147,14 +147,14 @@ EOF
     echo "$output" | grep -q "Review workflows before enabling"
     echo "$output" | grep -q "Cancelled"
     # Should NOT have saved
-    [ ! -d "${CUSTOM_DIR}/warn-wf" ]
+    [ ! -d "${CREATED_DIR}/warn-wf" ]
 }
 
 # ============================================================================
 # Import to Custom Directory
 # ============================================================================
 
-@test "import: saves workflow to custom directory" {
+@test "import: saves workflow to created directory" {
     local wf_file="${TEST_TMPDIR}/good.md"
     _create_test_wf_file "$wf_file" "imported-wf" "x" "An imported workflow"
     _mock_curl_with_file "$wf_file"
@@ -165,9 +165,9 @@ EOF
     status=$?
 
     [ "$status" -eq 0 ]
-    echo "$output" | grep -q "Saved to custom/imported-wf"
-    [ -f "${CUSTOM_DIR}/imported-wf/WORKFLOW.md" ]
-    grep -q "name: imported-wf" "${CUSTOM_DIR}/imported-wf/WORKFLOW.md"
+    echo "$output" | grep -q "Saved to created/imported-wf"
+    [ -f "${CREATED_DIR}/imported-wf/WORKFLOW.md" ]
+    grep -q "name: imported-wf" "${CREATED_DIR}/imported-wf/WORKFLOW.md"
 }
 
 @test "import: enables workflow when user accepts" {
@@ -218,7 +218,7 @@ EOF
     status=$?
 
     [ "$status" -eq 0 ]
-    echo "$output" | grep -q "Saved to custom/overwrite-wf"
-    grep -q "New version" "${CUSTOM_DIR}/overwrite-wf/WORKFLOW.md"
+    echo "$output" | grep -q "Saved to created/overwrite-wf"
+    grep -q "New version" "${CREATED_DIR}/overwrite-wf/WORKFLOW.md"
 }
 

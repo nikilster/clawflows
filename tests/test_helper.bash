@@ -26,13 +26,13 @@ setup_test_environment() {
     export BACKUP_DIR="${TEST_TMPDIR}/backups"
 
     # These would normally be set by the CLI, but we set them for testing
-    export CUSTOM_DIR="${CLAWFLOWS_DIR}/workflows/available/custom"
+    export CREATED_DIR="${CLAWFLOWS_DIR}/workflows/available/created"
     export COMMUNITY_DIR="${CLAWFLOWS_DIR}/workflows/available/community"
     export INSTALLED_DIR="${CLAWFLOWS_DIR}/workflows/available/installed"
     export ENABLED_DIR="${CLAWFLOWS_DIR}/workflows/enabled"
 
     # Create directory structure
-    mkdir -p "$CUSTOM_DIR"
+    mkdir -p "$CREATED_DIR"
     mkdir -p "$COMMUNITY_DIR"
     mkdir -p "$INSTALLED_DIR"
     mkdir -p "$ENABLED_DIR"
@@ -71,7 +71,7 @@ CLAWFLOWS_DIR="${CLAWFLOWS_DIR}"
 AGENTS_MD="${AGENTS_MD}"
 BACKUP_DIR="${BACKUP_DIR}"
 COMMUNITY_DIR="${COMMUNITY_DIR}"
-CUSTOM_DIR="${CUSTOM_DIR}"
+CREATED_DIR="${CREATED_DIR}"
 INSTALLED_DIR="${INSTALLED_DIR}"
 ENABLED_DIR="${ENABLED_DIR}"
 SUBMISSIONS_DIR="${CLAWFLOWS_DIR}/community-submissions"
@@ -98,7 +98,7 @@ EOF
 
 # create_workflow creates a workflow in the specified location
 # Usage: create_workflow <location> <name> [emoji] [description] [schedule] [author]
-# location: "community" or "custom"
+# location: "community" or "created"
 create_workflow() {
     local location="$1"
     local name="$2"
@@ -110,8 +110,8 @@ create_workflow() {
     local target_dir
     if [[ "$location" == "community" ]]; then
         target_dir="${COMMUNITY_DIR}/${name}"
-    elif [[ "$location" == "custom" ]]; then
-        target_dir="${CUSTOM_DIR}/${name}"
+    elif [[ "$location" == "created" ]]; then
+        target_dir="${CREATED_DIR}/${name}"
     else
         echo "Invalid location: $location" >&2
         return 1
@@ -203,9 +203,9 @@ This is a test workflow for ${name}.
     printf '%s\n' "$content" > "${target_dir}/WORKFLOW.md"
 }
 
-# create_custom_workflow is a convenience wrapper
+# create_custom_workflow is a convenience wrapper (calls with "created" location)
 create_custom_workflow() {
-    create_workflow "custom" "$@"
+    create_workflow "created" "$@"
 }
 
 # enable_workflow creates a symlink in enabled/
@@ -213,8 +213,8 @@ enable_workflow() {
     local name="$1"
     local source_dir
 
-    if [[ -d "${CUSTOM_DIR}/${name}" ]]; then
-        source_dir="${CUSTOM_DIR}/${name}"
+    if [[ -d "${CREATED_DIR}/${name}" ]]; then
+        source_dir="${CREATED_DIR}/${name}"
     elif [[ -d "${COMMUNITY_DIR}/${name}" ]]; then
         source_dir="${COMMUNITY_DIR}/${name}"
     else
@@ -284,7 +284,7 @@ assert_workflow_exists() {
     local dir
     case "$location" in
         community) dir="${COMMUNITY_DIR}/${name}" ;;
-        custom) dir="${CUSTOM_DIR}/${name}" ;;
+        created) dir="${CREATED_DIR}/${name}" ;;
         enabled) dir="${ENABLED_DIR}/${name}" ;;
         *) fail "Invalid location: $location" ;;
     esac
@@ -301,7 +301,7 @@ assert_workflow_not_exists() {
     local dir
     case "$location" in
         community) dir="${COMMUNITY_DIR}/${name}" ;;
-        custom) dir="${CUSTOM_DIR}/${name}" ;;
+        created) dir="${CREATED_DIR}/${name}" ;;
         enabled) dir="${ENABLED_DIR}/${name}" ;;
         *) fail "Invalid location: $location" ;;
     esac
@@ -350,7 +350,7 @@ run_clawflows() {
 # Copy fixtures from tests/fixtures to test environment
 copy_fixture() {
     local fixture_name="$1"
-    local dest_location="$2"  # "community" or "custom"
+    local dest_location="$2"  # "community" or "created"
 
     local fixture_path="${TESTS_DIR}/fixtures/${fixture_name}"
     local dest_dir
@@ -358,7 +358,7 @@ copy_fixture() {
     if [[ "$dest_location" == "community" ]]; then
         dest_dir="${COMMUNITY_DIR}/${fixture_name}"
     else
-        dest_dir="${CUSTOM_DIR}/${fixture_name}"
+        dest_dir="${CREATED_DIR}/${fixture_name}"
     fi
 
     cp -r "$fixture_path" "$dest_dir"
@@ -399,12 +399,12 @@ create_test_backup() {
     local temp_dir
     temp_dir=$(mktemp -d)
 
-    mkdir -p "${temp_dir}/custom"
+    mkdir -p "${temp_dir}/created"
 
     # Create workflow directories in backup
     for wf in "${workflows[@]}"; do
-        mkdir -p "${temp_dir}/custom/${wf}"
-        cat > "${temp_dir}/custom/${wf}/WORKFLOW.md" << EOF
+        mkdir -p "${temp_dir}/created/${wf}"
+        cat > "${temp_dir}/created/${wf}/WORKFLOW.md" << EOF
 ---
 name: ${wf}
 emoji: "📦"
@@ -421,7 +421,7 @@ EOF
     printf '%s\n' "${workflows[@]}" > "${temp_dir}/enabled-workflows.txt"
 
     # Create tarball
-    tar -czf "${BACKUP_DIR}/${backup_name}" -C "$temp_dir" custom enabled-workflows.txt
+    tar -czf "${BACKUP_DIR}/${backup_name}" -C "$temp_dir" created enabled-workflows.txt
 
     rm -rf "$temp_dir"
 

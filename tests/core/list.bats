@@ -98,7 +98,7 @@ teardown() {
 
 @test "list: skips .gitkeep files" {
     create_installed_workflow "real-workflow" "🧪" "Real workflow"
-    touch "${CUSTOM_DIR}/.gitkeep"
+    touch "${CREATED_DIR}/.gitkeep"
 
     run_clawflows list
 
@@ -116,7 +116,7 @@ teardown() {
     assert_success
     # Should show custom source, not @testuser (installed)
     assert_output --partial "shared-name"
-    assert_output --partial "custom"
+    assert_output --partial "created"
     refute_output --partial "@testuser"
 }
 
@@ -154,14 +154,14 @@ teardown() {
 # Source Label Tests
 # ============================================================================
 
-@test "list: custom workflows show 'custom' source" {
+@test "list: custom workflows show 'created' source" {
     create_custom_workflow "my-workflow" "🏠" "My custom workflow"
 
     run_clawflows list
 
     assert_success
     assert_output --partial "my-workflow"
-    assert_output --partial "custom"
+    assert_output --partial "created"
 }
 
 @test "list: installed workflows show @username source" {

@@ -116,5 +116,5 @@ teardown() {
     # Should have enabled the custom one
     local target
     target="$(readlink "${ENABLED_DIR}/shared-name")"
-    [[ "$target" == *"custom"* ]]
+    [[ "$target" == *"created"* ]]
 }

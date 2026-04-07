@@ -337,7 +337,7 @@ You can use plain English: `"7am"`, `"every 2 hours"`, `"morning"`, etc.
 
 # ✏️ Creating Your Own
 
-Build your custom workflow:
+Build your own workflow:
 
 ```bash
 clawflows create
@@ -374,18 +374,18 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 | `clawflows list enabled` | Show only enabled workflows |
 | `clawflows list available` | Show only available workflows |
 | `clawflows dashboard` | Open workflows in your browser |
-| `clawflows create` | Create a new custom workflow (interactive) |
+| `clawflows create` | Create a new workflow (interactive) |
 | `clawflows create --from-json` | Create from JSON (for agents) |
 | `clawflows run <name>` | Run a workflow now |
 | `clawflows logs [name] [date]` | Show recent run logs |
 | `clawflows enable <name>` | Turn on a workflow |
 | `clawflows disable <name>` | Turn off a workflow |
-| `clawflows edit <name>` | Copy a community workflow to custom/ for editing |
+| `clawflows edit <name>` | Copy an installed workflow to created/ for editing |
 | `clawflows open <name>` | Open a workflow in your editor |
 | `clawflows validate <name>` | Check a workflow has required fields |
-| `clawflows submit <name>` | Submit a custom workflow for community review |
+| `clawflows submit <name>` | Submit a workflow for community review |
 | `clawflows share <name>` | Show shareable text for a workflow |
-| `clawflows backup` | Back up custom workflows and enabled list |
+| `clawflows backup` | Back up created workflows and enabled list |
 | `clawflows restore` | Restore from a backup |
 | `clawflows update` | Pull the latest workflows from GitHub |
 | `clawflows sync-agent` | Refresh your agent's workflow list in AGENTS.md |

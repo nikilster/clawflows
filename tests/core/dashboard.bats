@@ -96,7 +96,7 @@ teardown() {
     run_clawflows dashboard --json
 
     assert_success
-    echo "$output" | grep -q '"name":"my-workflow".*"source":"custom"'
+    echo "$output" | grep -q '"name":"my-workflow".*"source":"created"'
 }
 
 @test "dashboard --json: installed workflows have source installed" {
@@ -119,7 +119,7 @@ teardown() {
     run_clawflows dashboard --json
 
     assert_success
-    echo "$output" | grep -q '"name":"check-email".*"source":"custom"'
+    echo "$output" | grep -q '"name":"check-email".*"source":"created"'
     ! echo "$output" | grep -q '"name":"check-email".*"source":"installed"'
 }
 

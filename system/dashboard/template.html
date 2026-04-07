@@ -792,7 +792,7 @@ function renderSectionedList(items, containerId, emptyMsg, mode) {
   var custom = [];
   var community = [];
   items.forEach(function(w) {
-    if (w.source === 'custom') custom.push(w);
+    if (w.source === 'created') custom.push(w);
     else community.push(w);
   });
 
@@ -803,7 +803,7 @@ function renderSectionedList(items, containerId, emptyMsg, mode) {
     if (custom.length > 0) {
       html += renderCards(custom, mode);
     } else {
-      html += '<div class="custom-empty"><p>You haven\'t created any custom workflows yet.</p></div>';
+      html += '<div class="custom-empty"><p>You haven\'t created any workflows yet.</p></div>';
     }
   } else {
     if (custom.length > 0) {
@@ -1046,7 +1046,7 @@ document.getElementById('createSubmit').addEventListener('click', function() {
         // Optimistic: add to local data and render immediately
         WORKFLOWS.push({
           name: name, emoji: emoji || '', description: summary,
-          schedule: schedule || '', author: '', source: 'custom',
+          schedule: schedule || '', author: '', source: 'created',
           enabled: true, content: description
         });
         render();

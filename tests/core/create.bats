@@ -22,7 +22,7 @@ teardown() {
 
     assert_success
     assert_output --partial "Created"
-    assert [ -f "${CUSTOM_DIR}/test-workflow/WORKFLOW.md" ]
+    assert [ -f "${CREATED_DIR}/test-workflow/WORKFLOW.md" ]
 }
 
 @test "create --from-json: generates correct WORKFLOW.md content" {
@@ -33,7 +33,7 @@ teardown() {
     assert_success
 
     # Check file content
-    run cat "${CUSTOM_DIR}/my-test/WORKFLOW.md"
+    run cat "${CREATED_DIR}/my-test/WORKFLOW.md"
     assert_output --partial "name: my-test"
     assert_output --partial "description: One line summary"
     assert_output --partial "Detailed description here"
@@ -92,7 +92,7 @@ teardown() {
     run_clawflows create --from-json "$json"
 
     assert_success
-    run cat "${CUSTOM_DIR}/scheduled-wf/WORKFLOW.md"
+    run cat "${CREATED_DIR}/scheduled-wf/WORKFLOW.md"
     assert_output --partial 'schedule: "9am"'
 }
 
@@ -102,7 +102,7 @@ teardown() {
     run_clawflows create --from-json "$json"
 
     assert_success
-    run cat "${CUSTOM_DIR}/emoji-wf/WORKFLOW.md"
+    run cat "${CREATED_DIR}/emoji-wf/WORKFLOW.md"
     assert_output --partial 'emoji: "🚀"'
 }
 
@@ -112,7 +112,7 @@ teardown() {
     run_clawflows create --from-json "$json"
 
     assert_success
-    run cat "${CUSTOM_DIR}/no-emoji/WORKFLOW.md"
+    run cat "${CREATED_DIR}/no-emoji/WORKFLOW.md"
     assert_output --partial 'emoji: "🔧"'
 }
 
@@ -122,7 +122,7 @@ teardown() {
     run_clawflows create --from-json "$json"
 
     assert_success
-    run cat "${CUSTOM_DIR}/authored-wf/WORKFLOW.md"
+    run cat "${CREATED_DIR}/authored-wf/WORKFLOW.md"
     assert_output --partial "author: @testuser"
 }
 
@@ -164,7 +164,7 @@ Do something useful
     run_clawflows create --from-json "$json"
 
     assert_success
-    assert [ -f "${CUSTOM_DIR}/spaced-wf/WORKFLOW.md" ]
+    assert [ -f "${CREATED_DIR}/spaced-wf/WORKFLOW.md" ]
 }
 
 @test "create --from-json: generates title from name" {
@@ -173,7 +173,7 @@ Do something useful
     run_clawflows create --from-json "$json"
 
     assert_success
-    run cat "${CUSTOM_DIR}/my-cool-workflow/WORKFLOW.md"
+    run cat "${CREATED_DIR}/my-cool-workflow/WORKFLOW.md"
     # Should have title case heading
     assert_output --partial "# My Cool Workflow"
 }

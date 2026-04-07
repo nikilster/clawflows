@@ -8,17 +8,17 @@ The `workflows/enabled/` folder should **ONLY contain symlinks**. Never create, 
 
 | What you want to do | How to do it |
 |---------------------|--------------|
-| **Create a new workflow** | `clawflows create --from-json '{...}'` — creates in `available/custom/` and auto-symlinks to `enabled/` |
-| **Edit an existing custom workflow** | Edit the source file in `workflows/available/custom/<name>/WORKFLOW.md` |
-| **Customize a community workflow** | `clawflows edit <name>` — copies to `available/custom/` for safe editing |
+| **Create a new workflow** | `clawflows create --from-json '{...}'` — creates in `available/created/` and auto-symlinks to `enabled/` |
+| **Edit an existing workflow** | Edit the source file in `workflows/available/created/<name>/WORKFLOW.md` |
+| **Customize an installed workflow** | `clawflows edit <name>` — copies to `available/created/` for safe editing |
 | **Enable a workflow** | `clawflows enable <name>` — creates a symlink in `enabled/` |
 | **Disable a workflow** | `clawflows disable <name>` — removes the symlink (source file is preserved) |
 
-**Why this matters:** If you write directly to `enabled/`, the file won't be tracked in `available/custom/` or `available/community/`. It can drift out of sync, get lost, or be confused with a community workflow during updates. Always use the CLI.
+**Why this matters:** If you write directly to `enabled/`, the file won't be tracked in `available/created/` or `available/installed/`. It can drift out of sync, get lost, or be confused with an installed workflow during updates. Always use the CLI.
 
 ## Creating a Workflow (for Agents)
 
-When a user wants a custom workflow, walk them through it conversationally before creating anything.
+When a user wants a new workflow, walk them through it conversationally before creating anything.
 
 ### Step 1: Ask These Questions
 
@@ -62,7 +62,7 @@ After creating the workflow:
 3. If they want edits, make the changes directly to the WORKFLOW.md file and show them the updated version
 4. Repeat until they're happy
 
-The workflow is created in `workflows/available/custom/` and automatically enabled. AGENTS.md is updated so you know about it. Custom workflows are safe from updates.
+The workflow is created in `workflows/available/created/` and automatically enabled. AGENTS.md is updated so you know about it. Created workflows are safe from updates.
 
 ### Example Conversation
 
@@ -262,7 +262,7 @@ Report what you found.
 
 ### For personal use
 
-Run `clawflows create` (interactive) or `clawflows create --from-json '{...}'` (programmatic). This creates the workflow in `workflows/available/custom/` and auto-enables it with a symlink.
+Run `clawflows create` (interactive) or `clawflows create --from-json '{...}'` (programmatic). This creates the workflow in `workflows/available/created/` and auto-enables it with a symlink.
 
 ### To the community
 

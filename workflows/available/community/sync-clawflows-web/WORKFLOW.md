@@ -17,7 +17,7 @@ clawflows sync
 ```
 
 This will:
-- Push any new or updated custom workflows to ClawFlows.ai
+- Push any new or updated workflows to ClawFlows.ai
 - Pull any workflows you installed from the web
 - Update run counts and visibility settings
 

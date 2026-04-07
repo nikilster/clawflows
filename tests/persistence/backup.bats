@@ -45,8 +45,8 @@ teardown() {
     extract_dir=$(mktemp -d)
     tar -xzf "$backup_file" -C "$extract_dir"
 
-    assert [ -d "${extract_dir}/custom/my-custom" ]
-    assert [ -f "${extract_dir}/custom/my-custom/WORKFLOW.md" ]
+    assert [ -d "${extract_dir}/created/my-custom" ]
+    assert [ -f "${extract_dir}/created/my-custom/WORKFLOW.md" ]
 
     rm -rf "$extract_dir"
 }
@@ -77,7 +77,7 @@ teardown() {
 
 @test "backup: excludes .gitkeep files" {
     create_custom_workflow "my-custom" "🏠" "Custom workflow"
-    touch "${CUSTOM_DIR}/.gitkeep"
+    touch "${CREATED_DIR}/.gitkeep"
 
     run_clawflows backup
 
@@ -90,7 +90,7 @@ teardown() {
     tar -xzf "$backup_file" -C "$extract_dir"
 
     # Should NOT contain .gitkeep
-    assert [ ! -f "${extract_dir}/custom/.gitkeep" ]
+    assert [ ! -f "${extract_dir}/created/.gitkeep" ]
 
     rm -rf "$extract_dir"
 }
@@ -109,7 +109,7 @@ teardown() {
     run_clawflows backup
 
     assert_success
-    assert_output --partial "Custom workflows: 0"
+    assert_output --partial "Created workflows: 0"
 }
 
 @test "backup: creates BACKUP_DIR if missing" {
@@ -132,7 +132,7 @@ teardown() {
     run_clawflows backup
 
     assert_success
-    assert_output --partial "Custom workflows: 2"
+    assert_output --partial "Created workflows: 2"
     assert_output --partial "Enabled workflows: 2"
 }
 

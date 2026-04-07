@@ -32,14 +32,14 @@ teardown() {
     run_clawflows submit installed-wf
 
     assert_failure
-    assert_output --partial "not found in custom/"
+    assert_output --partial "not found in created/"
 }
 
 @test "submit: non-existent custom workflow fails" {
     run_clawflows submit nonexistent
 
     assert_failure
-    assert_output --partial "not found in custom/"
+    assert_output --partial "not found in created/"
 }
 
 @test "submit: duplicate submission fails" {
@@ -68,8 +68,8 @@ teardown() {
 
 @test "submit: validates workflow before submitting" {
     # Create workflow without required fields
-    mkdir -p "${CUSTOM_DIR}/invalid-wf"
-    cat > "${CUSTOM_DIR}/invalid-wf/WORKFLOW.md" << 'EOF'
+    mkdir -p "${CREATED_DIR}/invalid-wf"
+    cat > "${CREATED_DIR}/invalid-wf/WORKFLOW.md" << 'EOF'
 ---
 name: invalid-wf
 ---

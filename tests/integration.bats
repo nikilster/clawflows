@@ -71,7 +71,7 @@ Test." > "${INSTALLED_DIR}/testuser/shared-workflow/WORKFLOW.md"
     # Edit to create custom version
     run_clawflows edit shared-workflow
     assert_success
-    assert_output --partial "copied to custom"
+    assert_output --partial "copied to created"
 
     # Custom should now shadow installed
     run_clawflows list
@@ -92,7 +92,7 @@ Test." > "${INSTALLED_DIR}/testuser/shared-workflow/WORKFLOW.md"
     assert [ -f "${BACKUP_DIR}/pre-delete-backup.tar.gz" ]
 
     # Delete the custom workflow
-    rm -rf "${CUSTOM_DIR}/precious-workflow"
+    rm -rf "${CREATED_DIR}/precious-workflow"
     run_clawflows disable precious-workflow
 
     # Verify it's gone
@@ -105,7 +105,7 @@ Test." > "${INSTALLED_DIR}/testuser/shared-workflow/WORKFLOW.md"
     assert_output --partial "Restored 1"
 
     # Verify it's back and re-enabled
-    assert [ -d "${CUSTOM_DIR}/precious-workflow" ]
+    assert [ -d "${CREATED_DIR}/precious-workflow" ]
     assert [ -L "${ENABLED_DIR}/precious-workflow" ]
 }
 

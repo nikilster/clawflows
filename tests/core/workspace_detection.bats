@@ -53,7 +53,7 @@ EOF
     assert_output --partial "AGENTS.md not found at ${custom_ws}/AGENTS.md"
 }
 
-@test "workspace detection: sync writes to custom workspace AGENTS.md" {
+@test "workspace detection: sync writes to created workspace AGENTS.md" {
     local custom_ws="${TEST_TMPDIR}/my-custom-workspace"
     mkdir -p "${custom_ws}"
 

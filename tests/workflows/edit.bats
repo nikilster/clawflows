@@ -15,28 +15,28 @@ teardown() {
 # Basic Edit Tests
 # ============================================================================
 
-@test "edit: copies installed workflow to custom" {
+@test "edit: copies installed workflow to created" {
     create_installed_workflow "test-workflow" "🧪" "Test workflow"
 
     run_clawflows edit test-workflow
 
     assert_success
-    assert_output --partial "copied to custom/"
-    assert [ -d "${CUSTOM_DIR}/test-workflow" ]
-    assert [ -f "${CUSTOM_DIR}/test-workflow/WORKFLOW.md" ]
+    assert_output --partial "copied to created/"
+    assert [ -d "${CREATED_DIR}/test-workflow" ]
+    assert [ -f "${CREATED_DIR}/test-workflow/WORKFLOW.md" ]
 }
 
-@test "edit: workflow already in custom shows path" {
+@test "edit: workflow already in created shows path" {
     create_custom_workflow "my-custom" "🏠" "Custom workflow"
 
     run_clawflows edit my-custom
 
     assert_success
-    assert_output --partial "workflow is in custom/"
-    assert_output --partial "${CUSTOM_DIR}/my-custom/WORKFLOW.md"
+    assert_output --partial "workflow is in created/"
+    assert_output --partial "${CREATED_DIR}/my-custom/WORKFLOW.md"
 }
 
-@test "edit: updates symlink to custom version if enabled" {
+@test "edit: updates symlink to created version if enabled" {
     create_installed_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
 
@@ -48,12 +48,12 @@ teardown() {
     run_clawflows edit test-workflow
 
     assert_success
-    assert_output --partial "updated symlink to custom version"
+    assert_output --partial "updated symlink to created version"
 
-    # Now should point to custom
+    # Now should point to created
     local after_target
     after_target="$(readlink "${ENABLED_DIR}/test-workflow")"
-    [[ "$after_target" == *"custom"* ]]
+    [[ "$after_target" == *"created"* ]]
 }
 
 @test "edit: non-existent workflow fails" {
@@ -82,6 +82,6 @@ teardown() {
     assert_success
 
     # Content should match
-    run cat "${CUSTOM_DIR}/test-workflow/WORKFLOW.md"
+    run cat "${CREATED_DIR}/test-workflow/WORKFLOW.md"
     assert_output --partial "Original description"
 }

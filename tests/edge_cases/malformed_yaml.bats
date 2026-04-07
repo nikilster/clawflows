@@ -16,7 +16,7 @@ teardown() {
 # ============================================================================
 
 @test "malformed YAML: missing name field shows in list without name" {
-    copy_fixture "missing-name" "custom"
+    copy_fixture "missing-name" "created"
 
     run_clawflows list
 
@@ -26,7 +26,7 @@ teardown() {
 }
 
 @test "malformed YAML: missing closing marker still extracts fields" {
-    copy_fixture "no-closing-marker" "custom"
+    copy_fixture "no-closing-marker" "created"
     enable_workflow "no-closing-marker"
     touch "$AGENTS_MD"
 
@@ -39,7 +39,7 @@ teardown() {
 }
 
 @test "malformed YAML: emoji without colon returns empty" {
-    copy_fixture "malformed-yaml" "custom"
+    copy_fixture "malformed-yaml" "created"
 
     run_clawflows list
 
@@ -49,8 +49,8 @@ teardown() {
 }
 
 @test "malformed YAML: validate catches missing fields" {
-    mkdir -p "${CUSTOM_DIR}/incomplete"
-    cat > "${CUSTOM_DIR}/incomplete/WORKFLOW.md" << 'EOF'
+    mkdir -p "${CREATED_DIR}/incomplete"
+    cat > "${CREATED_DIR}/incomplete/WORKFLOW.md" << 'EOF'
 ---
 name: incomplete
 ---
@@ -65,8 +65,8 @@ EOF
 }
 
 @test "malformed YAML: validate catches missing frontmatter" {
-    mkdir -p "${CUSTOM_DIR}/no-frontmatter"
-    cat > "${CUSTOM_DIR}/no-frontmatter/WORKFLOW.md" << 'EOF'
+    mkdir -p "${CREATED_DIR}/no-frontmatter"
+    cat > "${CREATED_DIR}/no-frontmatter/WORKFLOW.md" << 'EOF'
 # No Frontmatter
 
 This file has no YAML frontmatter at all.
