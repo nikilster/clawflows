@@ -2652,14 +2652,10 @@ print(v)
   if command -v openclaw >/dev/null 2>&1; then
     capabilities_json="$(python3 -c '
 import json, subprocess, sys
-SKIP_SOURCES = {"agents-skills-personal", "openclaw-workspace"}
-SKIP_SKILLS = {"clawhub", "find-skills", "skill-creator", "session-logs", "self-improvement", "healthcheck", "coding-agent"}
 caps = []
 try:
     sk = json.loads(subprocess.run(["openclaw","skills","list","--eligible","--json"], capture_output=True, text=True).stdout)
     for s in sk.get("skills", []):
-        if s.get("source","") in SKIP_SOURCES: continue
-        if s["name"] in SKIP_SKILLS: continue
         caps.append({"slug":"skill/"+s["name"], "kind":"skill", "name":s["name"].replace("-"," ").title(), "emoji":s.get("emoji",""), "description":(s.get("description","") or "")[:200], "homepage_url":s.get("homepage"), "meta":{"source":s.get("source","")}})
 except: pass
 try:
