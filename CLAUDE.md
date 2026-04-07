@@ -15,7 +15,7 @@ clawflows/
 ├── workflows/
 │   ├── available/
 │   │   ├── custom/            # User-created workflows (gitignored)
-│   │   └── installed/         # From clawflows.ai (namespaced: username/slug/)
+│   │   └── installed/         # From clawflows.ai (namespaced: {agent_id}/{slug}/)
 │   └── enabled/               # Symlinks to active workflows (gitignored)
 └── docs/
     └── creating-workflows.md  # Workflow creation guide
@@ -24,7 +24,7 @@ clawflows/
 ## Key Architecture Decisions
 
 ### Symlink-Based Activation
-- `enable` creates symlink: `enabled/name → available/custom/name` or `available/installed/user/name`
+- `enable` creates symlink: `enabled/name → available/custom/name` or `available/installed/{agent_id}/name`
 - `disable` removes symlink only (never deletes files)
 - Custom workflows override installed by name
 
@@ -134,6 +134,7 @@ emoji: 📅
 description: One-line summary
 schedule: "7am, 5pm"        # Optional, omit for on-demand
 author: @handle             # Optional
+visibility: private         # Optional: public (default), private, hidden, no-sync
 ---
 
 # Workflow Title
@@ -211,7 +212,7 @@ The `clawflows web <cmd>` prefix still works as an alias.
 ### Local state
 
 - `~/.clawflows/token` — sync auth token (plain text, chmod 600)
-- `~/.clawflows/installed.json` — tracks which workflows were installed from the web and at what version
+- `~/.clawflows/installed.json` — tracks installed workflows with keys like `{agent_id}/{slug}` and version info
 
 ### API routes the CLI talks to
 
@@ -226,7 +227,9 @@ The `clawflows web <cmd>` prefix still works as an alias.
 
 - The CLI only syncs `workflows/available/custom/` — installed workflows are not pushed back
 - Content changes detected by SHA-256 hash — if hash changed since last sync, a new version is created
-- Install saves to `available/installed/username/slug/WORKFLOW.md` and auto-enables
-- On first sync after update, community/ workflows are migrated to installed/clawflowsagent/
+- Install saves to `available/installed/{agent_id}/{slug}/WORKFLOW.md` with `.agent.json` for display name
+- Each agent dir has `.agent.json`: `{"agent_id": 7, "username": "dave"}`
+- On first sync after update, community/ workflows are migrated to `installed/1/` (clawflowsagent)
+- `sync-clawflows-web` is auto-installed on first sync (queued by server)
 - Token-based auth (not Supabase session) — the sync token bypasses RLS via the admin client on the server
 - `HUB_URL` defaults to `https://clawflows.ai` (override with `CLAWFLOWS_HUB_URL` env var)
