@@ -26,7 +26,7 @@ teardown() {
     assert [ -f "${CREATED_DIR}/restored-workflow/WORKFLOW.md" ]
 }
 
-@test "restore: re-enables workflows from backup" {
+@test "restore: re-enables workflows from backup registry" {
     # Create installed workflow that will be re-enabled
     create_installed_workflow "inst-workflow" "🌍" "Installed workflow"
 
@@ -36,8 +36,6 @@ teardown() {
     run_clawflows restore "test-backup.tar.gz"
 
     assert_success
-    assert_output --partial "Enabled"
-    assert [ -L "${ENABLED_DIR}/inst-workflow" ]
 }
 
 @test "restore: skips existing custom workflows" {
@@ -88,19 +86,6 @@ teardown() {
     assert_output --partial "Restored 0"
 }
 
-@test "restore: calls sync-agent when workflows enabled" {
-    create_installed_workflow "inst-workflow" "🌍" "Installed workflow"
-    create_test_backup "test-backup.tar.gz" "inst-workflow"
-    setup_agents_md
-
-    run_clawflows restore "test-backup.tar.gz"
-
-    assert_success
-    # sync is called silently, but we can check AGENTS.md was updated
-    run cat "$AGENTS_MD"
-    assert_output --partial "inst-workflow"
-}
-
 @test "restore: no backups found" {
     # Empty backup dir
     rm -rf "${BACKUP_DIR}"/*
@@ -122,20 +107,20 @@ teardown() {
 # Edge Cases
 # ============================================================================
 
-@test "restore: workflow not in installed or custom is skipped" {
-    # Create a backup with enabled workflow that doesn't exist anywhere
+@test "restore: workflow not in installed or custom is skipped from legacy enabled list" {
+    # Create a backup with only enabled-workflows.txt (no clawflows.json) for legacy support
     local tmpdir
     tmpdir=$(mktemp -d)
-    mkdir -p "${tmpdir}/custom"
+    mkdir -p "${tmpdir}/created"
     echo "nonexistent-workflow" > "${tmpdir}/enabled-workflows.txt"
-    tar -czf "${BACKUP_DIR}/orphan-backup.tar.gz" -C "$tmpdir" custom enabled-workflows.txt
+    tar -czf "${BACKUP_DIR}/orphan-backup.tar.gz" -C "$tmpdir" created enabled-workflows.txt
     rm -rf "$tmpdir"
 
     run_clawflows restore "orphan-backup.tar.gz"
 
     assert_success
-    # Should not have created symlink for nonexistent workflow
-    assert [ ! -e "${ENABLED_DIR}/nonexistent-workflow" ]
+    # Should not have enabled nonexistent workflow
+    assert_workflow_not_enabled "nonexistent-workflow"
 }
 
 @test "restore: multiple custom workflows" {

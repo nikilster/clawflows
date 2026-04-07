@@ -26,19 +26,19 @@ setup_test_environment() {
     export BACKUP_DIR="${TEST_TMPDIR}/backups"
 
     # These would normally be set by the CLI, but we set them for testing
-    export CREATED_DIR="${CLAWFLOWS_DIR}/clawflows/available/created"
-    export COMMUNITY_DIR="${CLAWFLOWS_DIR}/clawflows/available/community"
-    export INSTALLED_DIR="${CLAWFLOWS_DIR}/clawflows/available/installed"
-    export ENABLED_DIR="${CLAWFLOWS_DIR}/clawflows/enabled"
+    export CREATED_DIR="${CLAWFLOWS_DIR}/clawflows/created"
+    export INSTALLED_DIR="${CLAWFLOWS_DIR}/clawflows/installed"
+    export CLAWFLOWS_JSON="${CLAWFLOWS_DIR}/clawflows/clawflows.json"
 
     # Create directory structure
     mkdir -p "$CREATED_DIR"
-    mkdir -p "$COMMUNITY_DIR"
     mkdir -p "$INSTALLED_DIR"
-    mkdir -p "$ENABLED_DIR"
     mkdir -p "$BACKUP_DIR"
     mkdir -p "${CLAWFLOWS_DIR}/system/cli"
     mkdir -p "${CLAWFLOWS_DIR}/community-submissions"
+
+    # Initialize empty clawflows.json
+    echo '[]' > "$CLAWFLOWS_JSON"
 
     # Create a modified CLI that uses our test paths
     create_test_cli
@@ -70,10 +70,9 @@ set -uo pipefail
 CLAWFLOWS_DIR="${CLAWFLOWS_DIR}"
 AGENTS_MD="${AGENTS_MD}"
 BACKUP_DIR="${BACKUP_DIR}"
-COMMUNITY_DIR="${COMMUNITY_DIR}"
 CREATED_DIR="${CREATED_DIR}"
 INSTALLED_DIR="${INSTALLED_DIR}"
-ENABLED_DIR="${ENABLED_DIR}"
+CLAWFLOWS_JSON="${CLAWFLOWS_JSON}"
 SUBMISSIONS_DIR="${CLAWFLOWS_DIR}/community-submissions"
 BIN_TARGET="\$HOME/.local/bin/clawflows"
 
@@ -109,7 +108,8 @@ create_workflow() {
 
     local target_dir
     if [[ "$location" == "community" ]]; then
-        target_dir="${COMMUNITY_DIR}/${name}"
+        # Legacy support: community goes to installed/1/
+        target_dir="${INSTALLED_DIR}/1/${name}"
     elif [[ "$location" == "created" ]]; then
         target_dir="${CREATED_DIR}/${name}"
     else
@@ -208,20 +208,28 @@ create_custom_workflow() {
     create_workflow "created" "$@"
 }
 
-# enable_workflow creates a symlink in enabled/
+# enable_workflow adds an entry to clawflows.json
 enable_workflow() {
     local name="$1"
-    local source_dir
+    local source_dir=""
+    local source=""
+    local rel_path=""
+    local schedule=""
+    local agent_id=""
+    local username=""
 
     if [[ -d "${CREATED_DIR}/${name}" ]]; then
         source_dir="${CREATED_DIR}/${name}"
-    elif [[ -d "${COMMUNITY_DIR}/${name}" ]]; then
-        source_dir="${COMMUNITY_DIR}/${name}"
+        source="created"
+        rel_path="created/${name}"
     else
         # Search installed/*/<name>
         for agent_dir in "${INSTALLED_DIR}"/*/; do
             if [[ -d "${agent_dir}${name}" ]]; then
                 source_dir="${agent_dir}${name}"
+                agent_id="$(basename "$agent_dir")"
+                source="installed"
+                rel_path="installed/${agent_id}/${name}"
                 break
             fi
         done
@@ -232,13 +240,45 @@ enable_workflow() {
         return 1
     fi
 
-    ln -s "$source_dir" "${ENABLED_DIR}/${name}"
-}
+    # Read schedule from WORKFLOW.md
+    if [[ -f "${source_dir}/WORKFLOW.md" ]]; then
+        schedule="$(awk '
+            BEGIN { in_fm=0 }
+            /^---$/ { in_fm++; next }
+            in_fm == 1 && /^schedule:/ {
+                sub(/^schedule:[ ]*/, "")
+                gsub(/^["'"'"']|["'"'"']$/, "")
+                print
+                exit
+            }
+            in_fm >= 2 { exit }
+        ' "${source_dir}/WORKFLOW.md")"
+    fi
 
-# create_broken_symlink creates a symlink pointing to non-existent location
-create_broken_symlink() {
-    local name="$1"
-    ln -s "/nonexistent/path/${name}" "${ENABLED_DIR}/${name}"
+    local now
+    now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+    local entry
+    if [[ "$source" == "installed" ]]; then
+        entry="{\"name\":\"${name}\",\"schedule\":\"${schedule:-}\",\"path\":\"${rel_path}\",\"source\":\"installed\",\"agent_id\":\"${agent_id}\",\"username\":\"${username:-}\",\"version\":1,\"created_at\":\"${now}\"}"
+    else
+        entry="{\"name\":\"${name}\",\"schedule\":\"${schedule:-}\",\"path\":\"${rel_path}\",\"source\":\"created\",\"created_at\":\"${now}\"}"
+    fi
+
+    # Add to clawflows.json using python3
+    python3 -c "
+import json
+entry = json.loads('${entry}')
+try:
+    with open('${CLAWFLOWS_JSON}', 'r') as f:
+        data = json.load(f)
+except:
+    data = []
+data = [e for e in data if e.get('name') != entry.get('name')]
+data.append(entry)
+with open('${CLAWFLOWS_JSON}', 'w') as f:
+    json.dump(data, f, indent=2)
+" 2>/dev/null
 }
 
 # ============================================================================
@@ -283,14 +323,13 @@ assert_workflow_exists() {
 
     local dir
     case "$location" in
-        community) dir="${COMMUNITY_DIR}/${name}" ;;
+        community) dir="${INSTALLED_DIR}/1/${name}" ;;
         created) dir="${CREATED_DIR}/${name}" ;;
-        enabled) dir="${ENABLED_DIR}/${name}" ;;
         *) fail "Invalid location: $location" ;;
     esac
 
     [[ -e "$dir" ]] || fail "Expected workflow to exist: $dir"
-    [[ -f "${dir}/WORKFLOW.md" || -L "$dir" ]] || fail "Expected WORKFLOW.md at: ${dir}/WORKFLOW.md"
+    [[ -f "${dir}/WORKFLOW.md" ]] || fail "Expected WORKFLOW.md at: ${dir}/WORKFLOW.md"
 }
 
 # assert_workflow_not_exists checks that a workflow does not exist
@@ -300,31 +339,44 @@ assert_workflow_not_exists() {
 
     local dir
     case "$location" in
-        community) dir="${COMMUNITY_DIR}/${name}" ;;
+        community) dir="${INSTALLED_DIR}/1/${name}" ;;
         created) dir="${CREATED_DIR}/${name}" ;;
-        enabled) dir="${ENABLED_DIR}/${name}" ;;
         *) fail "Invalid location: $location" ;;
     esac
 
     [[ ! -e "$dir" ]] || fail "Expected workflow to not exist: $dir"
 }
 
-# assert_symlink_target checks that a symlink points to expected target
-assert_symlink_target() {
-    local symlink="$1"
-    local expected_target="$2"
-
-    [[ -L "$symlink" ]] || fail "Expected symlink: $symlink"
-    local actual_target
-    actual_target="$(readlink "$symlink")"
-    [[ "$actual_target" == "$expected_target" ]] || \
-        fail "Expected symlink target '$expected_target', got '$actual_target'"
+# assert_workflow_enabled checks that a workflow is in clawflows.json
+assert_workflow_enabled() {
+    local name="$1"
+    local result
+    result="$(python3 -c "
+import json
+with open('${CLAWFLOWS_JSON}', 'r') as f:
+    data = json.load(f)
+for e in data:
+    if e.get('name') == '$name':
+        print('found')
+        break
+" 2>/dev/null)"
+    [[ "$result" == "found" ]] || fail "Expected workflow '$name' to be enabled in clawflows.json"
 }
 
-# assert_is_symlink checks that a path is a symlink
-assert_is_symlink() {
-    local path="$1"
-    [[ -L "$path" ]] || fail "Expected symlink: $path"
+# assert_workflow_not_enabled checks that a workflow is NOT in clawflows.json
+assert_workflow_not_enabled() {
+    local name="$1"
+    local result
+    result="$(python3 -c "
+import json
+with open('${CLAWFLOWS_JSON}', 'r') as f:
+    data = json.load(f)
+for e in data:
+    if e.get('name') == '$name':
+        print('found')
+        break
+" 2>/dev/null)"
+    [[ "$result" != "found" ]] || fail "Expected workflow '$name' to NOT be enabled in clawflows.json"
 }
 
 # assert_is_directory checks that a path is a real directory (not symlink)
@@ -356,7 +408,7 @@ copy_fixture() {
     local dest_dir
 
     if [[ "$dest_location" == "community" ]]; then
-        dest_dir="${COMMUNITY_DIR}/${fixture_name}"
+        dest_dir="${INSTALLED_DIR}/1/${fixture_name}"
     else
         dest_dir="${CREATED_DIR}/${fixture_name}"
     fi
@@ -420,8 +472,24 @@ EOF
     # Create enabled list
     printf '%s\n' "${workflows[@]}" > "${temp_dir}/enabled-workflows.txt"
 
+    # Create registry
+    local registry="["
+    local first=true
+    local now
+    now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    for wf in "${workflows[@]}"; do
+        if $first; then
+            first=false
+        else
+            registry="$registry,"
+        fi
+        registry="$registry{\"name\":\"${wf}\",\"schedule\":\"\",\"path\":\"created/${wf}\",\"source\":\"created\",\"created_at\":\"${now}\"}"
+    done
+    registry="$registry]"
+    printf '%s' "$registry" > "${temp_dir}/clawflows.json"
+
     # Create tarball
-    tar -czf "${BACKUP_DIR}/${backup_name}" -C "$temp_dir" created enabled-workflows.txt
+    tar -czf "${BACKUP_DIR}/${backup_name}" -C "$temp_dir" created enabled-workflows.txt clawflows.json
 
     rm -rf "$temp_dir"
 

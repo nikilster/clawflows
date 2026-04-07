@@ -18,10 +18,9 @@ _oc_workspace="${_oc_workspace:-$HOME/.openclaw/workspace}"
 
 AGENTS_MD="${AGENTS_MD:-$_oc_workspace/AGENTS.md}"
 BACKUP_DIR="${BACKUP_DIR:-$_oc_workspace/clawflows-backups}"
-COMMUNITY_DIR="$CLAWFLOWS_DIR/clawflows/available/community"
-CREATED_DIR="$CLAWFLOWS_DIR/clawflows/available/created"
-INSTALLED_DIR="$CLAWFLOWS_DIR/clawflows/available/installed"
-ENABLED_DIR="$CLAWFLOWS_DIR/clawflows/enabled"
+CREATED_DIR="$CLAWFLOWS_DIR/clawflows/created"
+INSTALLED_DIR="$CLAWFLOWS_DIR/clawflows/installed"
+CLAWFLOWS_JSON="$CLAWFLOWS_DIR/clawflows/clawflows.json"
 SUBMISSIONS_DIR="$CLAWFLOWS_DIR/community-submissions"
 BIN_TARGET="$HOME/.local/bin/clawflows"
 
@@ -45,6 +44,66 @@ _find_openclaw() {
       return
     fi
   done
+}
+
+# ── clawflows.json Helpers ─────────────────────────────────────────────────
+
+_json_read() {
+  if [ -f "$CLAWFLOWS_JSON" ]; then
+    cat "$CLAWFLOWS_JSON"
+  else
+    echo "[]"
+  fi
+}
+
+_json_find() {
+  local name="$1"
+  python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for entry in data:
+    if entry.get('name') == '$name':
+        print(json.dumps(entry))
+        break
+" <<< "$(_json_read)" 2>/dev/null
+}
+
+_json_add() {
+  local entry_json="$1"
+  local tmpfile
+  tmpfile="$(mktemp)"
+  python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+entry = json.loads('$entry_json')
+# Remove existing entry with same name
+data = [e for e in data if e.get('name') != entry.get('name')]
+data.append(entry)
+with open('$tmpfile', 'w') as f:
+    json.dump(data, f, indent=2)
+" <<< "$(_json_read)" 2>/dev/null
+  mv "$tmpfile" "$CLAWFLOWS_JSON"
+}
+
+_json_remove() {
+  local name="$1"
+  local tmpfile
+  tmpfile="$(mktemp)"
+  python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+data = [e for e in data if e.get('name') != '$name']
+with open('$tmpfile', 'w') as f:
+    json.dump(data, f, indent=2)
+" <<< "$(_json_read)" 2>/dev/null
+  mv "$tmpfile" "$CLAWFLOWS_JSON"
+}
+
+_json_is_enabled() {
+  local name="$1"
+  local result
+  result="$(_json_find "$name")"
+  [ -n "$result" ]
 }
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
@@ -76,8 +135,8 @@ cmd_help() {
   printf "  ${CMD}logs ${M}[name] [date]${R}   Show recent run logs\n"
 
   printf "\n${H}🔧 Managing${R}\n"
-  printf "  ${CMD}enable ${M}<name>${R}        Turn on a workflow (symlinks to enabled/)\n"
-  printf "  ${CMD}disable ${M}<name>${R}       Turn off a workflow (removes symlink)\n"
+  printf "  ${CMD}enable ${M}<name>${R}        Turn on a workflow\n"
+  printf "  ${CMD}disable ${M}<name>${R}       Turn off a workflow\n"
   printf "  ${CMD}edit ${M}<name>${R}          Copy an installed workflow to created/ for editing\n"
   printf "  ${CMD}open ${M}<name>${R}          Open a workflow in your editor\n"
   printf "  ${CMD}validate ${M}<name>${R}      Check a workflow has required fields\n"
@@ -103,7 +162,7 @@ cmd_help() {
   printf "\n${H}🔄 Maintenance${R}\n"
   printf "  ${CMD}update${R}               Update clawflows to the latest version\n"
   printf "  ${CMD}sync-agent${R}           Refresh your agent's workflow list in AGENTS.md\n"
-  printf "  ${CMD}doctor${R}               Check for workflow issues (broken symlinks, drift)\n"
+  printf "  ${CMD}doctor${R}               Check for workflow issues (missing files, duplicates)\n"
   printf "  ${CMD}uninstall${R}            Remove clawflows and clean up\n"
 
   printf "\n${H}ℹ️  Info${R}\n"
@@ -121,11 +180,11 @@ cmd_help() {
 
   printf "\n${H}How it works${R}\n"
   printf "  Clawflows live in ~/.openclaw/workspace/clawflows/clawflows/\n"
-  printf "  ${M}•${R} available/created/    — your own clawflows\n"
-  printf "  ${M}•${R} available/installed/  — installed from clawflows.ai\n"
-  printf "  ${M}•${R} enabled/              — symlinks to active workflows\n"
-  printf "\n  When you enable a workflow, a symlink is created. Disable removes\n"
-  printf "  the symlink — your workflows are never deleted.\n"
+  printf "  ${M}•${R} created/              — your own clawflows\n"
+  printf "  ${M}•${R} installed/            — installed from clawflows.ai\n"
+  printf "  ${M}•${R} clawflows.json        — tracks enabled workflows\n"
+  printf "\n  When you enable a workflow, it's added to clawflows.json.\n"
+  printf "  Disable removes it from clawflows.json — your files are never deleted.\n"
   printf "\n  Use 'edit' to copy an installed workflow to created/ so you\n"
   printf "  can modify it. Use 'open' to open any workflow in your editor.\n"
 
@@ -473,6 +532,10 @@ cmd_list() {
   local available_lines=()
   local seen_names=""
 
+  # Read clawflows.json to know which workflows are enabled
+  local clawflows_data
+  clawflows_data="$(_json_read)"
+
   # Collect created workflows
   for dir in "$CREATED_DIR"/*/; do
     [ -d "$dir" ] || continue
@@ -481,7 +544,7 @@ cmd_list() {
     seen_names="$seen_names $name "
     found=true
 
-    if [ -L "$ENABLED_DIR/$name" ] || [ -d "$ENABLED_DIR/$name" ]; then
+    if _json_is_enabled "$name"; then
       enabled_lines+=("$(_workflow_line "$dir" "created")")
     else
       available_lines+=("$(_workflow_line "$dir" "created")")
@@ -492,12 +555,9 @@ cmd_list() {
   if [ -d "$INSTALLED_DIR" ]; then
     for agent_dir in "$INSTALLED_DIR"/*/; do
       [ -d "$agent_dir" ] || continue
-      local agent_label
-      if [ -f "$agent_dir.agent.json" ]; then
-        agent_label="@$(python3 -c 'import sys,json; print(json.load(sys.stdin).get("username","unknown"))' < "$agent_dir.agent.json" 2>/dev/null)"
-      else
-        agent_label="@$(basename "$agent_dir")"
-      fi
+      local agent_id_name
+      agent_id_name="$(basename "$agent_dir")"
+      # Get username from clawflows.json if enabled, otherwise from .agent.json
       for dir in "$agent_dir"*/; do
         [ -d "$dir" ] || continue
         name="$(basename "$dir")"
@@ -507,7 +567,26 @@ cmd_list() {
         seen_names="$seen_names $name "
         found=true
 
-        if [ -L "$ENABLED_DIR/$name" ] || [ -d "$ENABLED_DIR/$name" ]; then
+        local agent_label
+        # Try to get username from clawflows.json
+        local reg_username
+        reg_username="$(python3 -c "
+import sys, json
+data = json.loads(sys.argv[1])
+for e in data:
+    if e.get('name') == '$name':
+        print(e.get('username', ''))
+        break
+" "$clawflows_data" 2>/dev/null)"
+        if [ -n "$reg_username" ]; then
+          agent_label="@$reg_username"
+        elif [ -f "$agent_dir.agent.json" ]; then
+          agent_label="@$(python3 -c 'import sys,json; print(json.load(sys.stdin).get("username","unknown"))' < "$agent_dir.agent.json" 2>/dev/null)"
+        else
+          agent_label="@$agent_id_name"
+        fi
+
+        if _json_is_enabled "$name"; then
           enabled_lines+=("$(_workflow_line "$dir" "$agent_label")")
         else
           available_lines+=("$(_workflow_line "$dir" "$agent_label")")
@@ -565,21 +644,60 @@ cmd_enable() {
 
   [ -n "$source_dir" ] || die "workflow '$name' not found"
 
-  if [ -L "$ENABLED_DIR/$name" ] || [ -d "$ENABLED_DIR/$name" ]; then
+  if _json_is_enabled "$name"; then
     echo "already enabled: $name"
     return
   fi
 
-  # Create symlink
-  ln -s "$source_dir" "$ENABLED_DIR/$name"
-
-  # Show a friendly enable message
+  # Read metadata from WORKFLOW.md
   local wf_file="$source_dir/WORKFLOW.md"
-  local emoji desc schedule
+  local emoji desc schedule source rel_path
   emoji="$(get_field "$wf_file" emoji)"
   desc="$(get_field "$wf_file" description)"
   schedule="$(get_field "$wf_file" schedule)"
 
+  # Determine source and relative path
+  case "$source_dir" in
+    "$CREATED_DIR"/*)
+      source="created"
+      rel_path="created/$name"
+      ;;
+    "$INSTALLED_DIR"/*)
+      source="installed"
+      # Extract agent_id from path: installed/<agent_id>/<slug>
+      local agent_id_dir
+      agent_id_dir="$(echo "$source_dir" | sed "s|$INSTALLED_DIR/||" | cut -d/ -f1)"
+      rel_path="installed/$agent_id_dir/$name"
+      ;;
+    *)
+      source="created"
+      rel_path="created/$name"
+      ;;
+  esac
+
+  # Build clawflows.json entry
+  local entry_json
+  local now
+  now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+  if [ "$source" = "installed" ]; then
+    local agent_id username version
+    agent_id="$agent_id_dir"
+    # Read username from .agent.json if it exists
+    username=""
+    if [ -f "$INSTALLED_DIR/$agent_id/.agent.json" ]; then
+      username="$(python3 -c 'import sys,json; print(json.load(sys.stdin).get("username",""))' < "$INSTALLED_DIR/$agent_id/.agent.json" 2>/dev/null)"
+    fi
+    # Read version from clawflows.json or default to 1
+    version="1"
+    entry_json="{\"name\":\"$name\",\"schedule\":\"${schedule:-}\",\"path\":\"$rel_path\",\"source\":\"installed\",\"agent_id\":\"$agent_id\",\"username\":\"${username:-}\",\"version\":$version,\"created_at\":\"$now\"}"
+  else
+    entry_json="{\"name\":\"$name\",\"schedule\":\"${schedule:-}\",\"path\":\"$rel_path\",\"source\":\"created\",\"created_at\":\"$now\"}"
+  fi
+
+  _json_add "$entry_json"
+
+  # Show a friendly enable message
   local label="${emoji:+$emoji }$name"
   echo ""
   echo "  $label enabled"
@@ -613,13 +731,12 @@ cmd_enable() {
 cmd_disable() {
   local name="$1"
   validate_workflow_name "$name"
-  if [ ! -L "$ENABLED_DIR/$name" ] && [ ! -d "$ENABLED_DIR/$name" ]; then
+  if ! _json_is_enabled "$name"; then
     echo "not enabled: $name"
     return
   fi
 
-  # Remove symlink (or directory if somehow it's not a symlink)
-  rm -rf "$ENABLED_DIR/$name"
+  _json_remove "$name"
   echo "disabled: $name"
   cmd_sync
 }
@@ -643,11 +760,14 @@ cmd_edit() {
     cp -r "$source_dir" "$CREATED_DIR/$name"
     echo "copied to created/: $name"
 
-    # If it was enabled, update the symlink to point to created/
-    if [ -L "$ENABLED_DIR/$name" ]; then
-      rm "$ENABLED_DIR/$name"
-      ln -s "$CREATED_DIR/$name" "$ENABLED_DIR/$name"
-      echo "updated symlink to created version"
+    # If it was enabled, update clawflows.json entry to point to created/
+    if _json_is_enabled "$name"; then
+      local existing schedule now
+      existing="$(_json_find "$name")"
+      schedule="$(printf '%s' "$existing" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("schedule",""))' 2>/dev/null)"
+      now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      _json_add "{\"name\":\"$name\",\"schedule\":\"${schedule:-}\",\"path\":\"created/$name\",\"source\":\"created\",\"created_at\":\"$now\"}"
+      echo "updated clawflows.json to created version"
     fi
 
     echo ""
@@ -792,47 +912,53 @@ cmd_doctor() {
 
   local issues=0
 
-  # Check for non-symlink entries in enabled/
-  for entry in "$ENABLED_DIR"/*/; do
-    [ -d "$entry" ] || continue
-    local name
-    name="$(basename "$entry")"
-    if [ ! -L "$ENABLED_DIR/$name" ]; then
-      echo "  ⚠️  $name is a direct copy in enabled/ (should be a symlink)"
-      echo "     Fix: move to available/created/$name/ and symlink back"
+  # Check each clawflows.json entry points to a real WORKFLOW.md
+  python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for entry in data:
+    print(entry.get('name', '') + '|' + entry.get('path', ''))
+" <<< "$(_json_read)" 2>/dev/null | while IFS='|' read -r name path; do
+    [ -n "$name" ] || continue
+    local wf_file="$CLAWFLOWS_DIR/clawflows/$path/WORKFLOW.md"
+    if [ ! -f "$wf_file" ]; then
+      echo "  ❌ $name: WORKFLOW.md missing at $wf_file"
       issues=$((issues + 1))
     fi
   done
 
-  # Check for broken symlinks in enabled/
-  for entry in "$ENABLED_DIR"/*; do
-    [ -L "$entry" ] || continue
-    if [ ! -e "$entry" ]; then
-      local name
-      name="$(basename "$entry")"
-      echo "  ❌ $name is a broken symlink (target missing)"
-      echo "     Target: $(readlink "$entry")"
+  # Check for duplicate names in clawflows.json
+  local dupes
+  dupes="$(python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+names = [e.get('name') for e in data]
+seen = set()
+for n in names:
+    if n in seen:
+        print(n)
+    seen.add(n)
+" <<< "$(_json_read)" 2>/dev/null)"
+  if [ -n "$dupes" ]; then
+    echo "$dupes" | while read -r dupe; do
+      echo "  ⚠️  Duplicate clawflows.json entry: $dupe"
       issues=$((issues + 1))
-    fi
-  done
+    done
+  fi
 
-  # Check for workflows not in available/created/
-  for entry in "$ENABLED_DIR"/*; do
-    [ -L "$entry" ] || continue
-    [ -e "$entry" ] || continue
-    local target
-    target="$(readlink "$entry")"
+  # Check for orphaned workflows (on disk but not in clawflows.json)
+  local orphaned=0
+  for dir in "$CREATED_DIR"/*/; do
+    [ -d "$dir" ] || continue
     local name
-    name="$(basename "$entry")"
-    if [[ "$target" != *"/available/created/"* ]] && [[ "$target" != *"/available/installed/"* ]] && [[ "$target" != *"/available/community/"* ]]; then
-      echo "  ⚠️  $name symlink points outside available/: $target"
-      issues=$((issues + 1))
-    fi
+    name="$(basename "$dir")"
+    [ "$name" = ".gitkeep" ] && continue
+    # Not an issue, just informational — orphaned means available but not enabled
   done
 
   if [ "$issues" -eq 0 ]; then
     echo "  ✅ All workflows look healthy!"
-    echo "     All enabled workflows are proper symlinks."
+    echo "     All clawflows.json entries point to valid files."
   else
     echo ""
     echo "  Found $issues issue(s)."
@@ -935,12 +1061,12 @@ _build_block() {
   lines+=("3. If the service is **optional/enhancing** (e.g., messaging skill for sending a summary — you can just show the summary directly instead) — tell the user the workflow will still work without it, but suggest they install it for a better experience.")
   lines+=("4. Keep it brief — just mention what's missing, don't list services they already have.")
   lines+=("")
-  lines+=("### ⚠️ Never Write Directly to \`enabled/\`")
-  lines+=("The \`clawflows/enabled/\` folder should **ONLY contain symlinks**. Never create, copy, or edit files directly in \`enabled/\`.")
+  lines+=("### ⚠️ Never Modify \`clawflows.json\` Directly")
+  lines+=("The \`clawflows/clawflows.json\` file tracks enabled workflows. Always use CLI commands to manage it.")
   lines+=("- **New workflow** → \`clawflows create --from-json\`")
-  lines+=("- **Edit a workflow** → edit the source in \`clawflows/available/created/<name>/WORKFLOW.md\`")
+  lines+=("- **Edit a workflow** → edit the source in \`clawflows/created/<name>/WORKFLOW.md\`")
   lines+=("- **Customize an installed workflow** → \`clawflows edit <name>\` (copies to created/ for safe editing)")
-  lines+=("- Writing directly to \`enabled/\` causes drift, breaks symlinks, and can be overwritten by updates.")
+  lines+=("- Editing the JSON directly can cause inconsistencies and break workflow management.")
   lines+=("")
   lines+=("### What Users Say → What To Do")
   lines+=("| What they say | What you do |")
@@ -968,11 +1094,11 @@ _build_block() {
   lines+=("If the user asks for something that sounds like a workflow but you're not sure which one, run \`clawflows list\` and find the best match. If no existing workflow fits, offer to create one.")
   lines+=("")
   lines+=("### Workflow Locations")
-  lines+=("- **Community workflows:** \`$CLAWFLOWS_DIR/clawflows/available/community/\`")
-  lines+=("- **Created workflows:** \`$CLAWFLOWS_DIR/clawflows/available/created/\`")
-  lines+=("- **Enabled workflows:** \`$CLAWFLOWS_DIR/clawflows/enabled/\` (symlinks)")
+  lines+=("- **Created workflows:** \`$CLAWFLOWS_DIR/clawflows/created/\`")
+  lines+=("- **Installed workflows:** \`$CLAWFLOWS_DIR/clawflows/installed/\`")
+  lines+=("- **Registry:** \`$CLAWFLOWS_DIR/clawflows/clawflows.json\` (tracks enabled workflows)")
   lines+=("- Each workflow has a \`WORKFLOW.md\` — this is the file you read and follow when running it")
-  lines+=("- Enabling creates a symlink in \`enabled/\` pointing to \`created/\` or \`installed/\`. Disabling removes the symlink — no data is deleted.")
+  lines+=("- Enabling adds a workflow to clawflows.json. Disabling removes it — no data is deleted.")
   lines+=("")
   lines+=("### Scheduled vs On-Demand")
   lines+=("- Workflows with a \`schedule\` field run automatically (e.g., \`schedule: \"7am\"\`)")
@@ -996,23 +1122,24 @@ _build_block() {
 
   local has_enabled=false
   local entries=()
-  for link in "$ENABLED_DIR"/*/; do
-    [ -d "$link" ] || continue
-    local name desc schedule wf_file target_dir
-    name="$(basename "$link")"
-    [ "$name" = ".gitkeep" ] && continue
 
-    # Resolve symlink to get actual path
-    if [ -L "$link" ]; then
-      target_dir="$(readlink "$link")"
-    else
-      target_dir="$link"
-    fi
+  # Read enabled workflows from clawflows.json
+  local clawflows_entries
+  clawflows_entries="$(python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for entry in data:
+    name = entry.get('name', '')
+    path = entry.get('path', '')
+    print(name + '|' + path)
+" <<< "$(_json_read)" 2>/dev/null)"
 
-    wf_file="$target_dir/WORKFLOW.md"
-    [ -f "$wf_file" ] || wf_file="$link/WORKFLOW.md"
+  while IFS='|' read -r name path; do
+    [ -n "$name" ] || continue
+    local wf_file="$CLAWFLOWS_DIR/clawflows/$path/WORKFLOW.md"
     [ -f "$wf_file" ] || continue
 
+    local desc schedule
     desc="$(get_field "$wf_file" description)"
     schedule="$(get_field "$wf_file" schedule)"
     if [ -n "$schedule" ]; then
@@ -1021,7 +1148,7 @@ _build_block() {
       entries+=("- **$name** (on-demand): $desc → \`$wf_file\`")
     fi
     has_enabled=true
-  done
+  done <<< "$clawflows_entries"
 
   if $has_enabled; then
     lines+=("### Enabled Workflows")
@@ -1086,17 +1213,24 @@ cmd_backup() {
     mkdir -p "$tmpdir/created"
   fi
 
-  # Save enabled workflows list
+  # Copy clawflows.json
+  if [ -f "$CLAWFLOWS_JSON" ]; then
+    cp "$CLAWFLOWS_JSON" "$tmpdir/clawflows.json"
+  fi
+
+  # Save enabled workflows list (backward compat)
   : > "$tmpdir/enabled-workflows.txt"
-  for link in "$ENABLED_DIR"/*/; do
-    [ -d "$link" ] || continue
-    local name="$(basename "$link")"
-    [ "$name" = ".gitkeep" ] && continue
-    echo "$name" >> "$tmpdir/enabled-workflows.txt"
-  done
+  python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for entry in data:
+    print(entry.get('name', ''))
+" <<< "$(_json_read)" 2>/dev/null >> "$tmpdir/enabled-workflows.txt"
 
   # Create archive
-  tar -czf "$BACKUP_DIR/$filename" -C "$tmpdir" .
+  local archive_items="created enabled-workflows.txt"
+  [ -f "$tmpdir/clawflows.json" ] && archive_items="$archive_items clawflows.json"
+  tar -czf "$BACKUP_DIR/$filename" -C "$tmpdir" $archive_items
   rm -rf "$tmpdir"
 
   # Count what we backed up
@@ -1107,12 +1241,8 @@ cmd_backup() {
     ((created_count++)) || true
   done
 
-  local enabled_count=0
-  for link in "$ENABLED_DIR"/*/; do
-    [ -d "$link" ] || continue
-    [ "$(basename "$link")" = ".gitkeep" ] && continue
-    ((enabled_count++)) || true
-  done
+  local enabled_count
+  enabled_count="$(python3 -c "import sys,json; print(len(json.load(sys.stdin)))" <<< "$(_json_read)" 2>/dev/null)"
 
   echo ""
   echo "  Backup created"
@@ -1231,31 +1361,69 @@ cmd_restore() {
 
   # Re-enable workflows
   local enabled=0
-  if [ -f "$tmpdir/enabled-workflows.txt" ]; then
+  if [ -f "$tmpdir/clawflows.json" ]; then
+    # Merge clawflows.json from backup
+    python3 -c "
+import sys, json
+backup = json.load(open('$tmpdir/clawflows.json'))
+try:
+    current = json.load(open('$CLAWFLOWS_JSON'))
+except:
+    current = []
+current_names = {e.get('name') for e in current}
+for entry in backup:
+    if entry.get('name') not in current_names:
+        current.append(entry)
+        print(entry.get('name', ''))
+with open('$CLAWFLOWS_JSON', 'w') as f:
+    json.dump(current, f, indent=2)
+" 2>/dev/null | while IFS= read -r name; do
+      [ -n "$name" ] && enabled=$((enabled + 1))
+    done
+    enabled="$(python3 -c "
+import json
+backup = json.load(open('$tmpdir/clawflows.json'))
+try:
+    current = json.load(open('$CLAWFLOWS_JSON'))
+except:
+    current = []
+current_names_before = set()
+print(len(current) - len(current_names_before))
+" 2>/dev/null || echo "0")"
+    # Just count how many we added
+    enabled="$(python3 -c "
+import json
+try:
+    current = json.load(open('$CLAWFLOWS_JSON'))
+except:
+    current = []
+print(len(current))
+" 2>/dev/null || echo "0")"
+  elif [ -f "$tmpdir/enabled-workflows.txt" ]; then
+    # Legacy: re-enable from text file
     while IFS= read -r name || [ -n "$name" ]; do
       [ -z "$name" ] && continue
-      
+
       # Validate workflow name to prevent path traversal
-      # Check for newlines first (same logic as validate_workflow_name)
       case "$name" in
         *$'\n'*)
           echo "  Warning: skipping invalid workflow name in enabled list: '$name' (contains newline)"
           continue
           ;;
       esac
-      
+
       if ! printf '%s' "$name" | grep -qE '^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$'; then
         echo "  Warning: skipping invalid workflow name in enabled list: '$name'"
         continue
       fi
-      
-      if [ -L "$ENABLED_DIR/$name" ] || [ -d "$ENABLED_DIR/$name" ]; then
+
+      if _json_is_enabled "$name"; then
         continue  # already enabled
       fi
       local source_dir
       source_dir="$(_find_workflow "$name")"
       if [ -n "$source_dir" ]; then
-        ln -s "$source_dir" "$ENABLED_DIR/$name"
+        cmd_enable "$name" >/dev/null 2>&1
         ((enabled++)) || true
       fi
     done < "$tmpdir/enabled-workflows.txt"
@@ -1646,14 +1814,18 @@ cmd_run() {
   validate_workflow_name "$name"
   local wf_file
 
-  # Find the workflow
-  if [ -L "$ENABLED_DIR/$name" ] || [ -d "$ENABLED_DIR/$name" ]; then
-    wf_file="$ENABLED_DIR/$name/WORKFLOW.md"
+  # Find the workflow - check clawflows.json first, then disk
+  if _json_is_enabled "$name"; then
+    local reg_path
+    reg_path="$(python3 -c "import sys,json; [print(e['path']) for e in json.load(sys.stdin) if e.get('name')=='$name']" <<< "$(_json_read)" 2>/dev/null)"
+    wf_file="$CLAWFLOWS_DIR/clawflows/$reg_path/WORKFLOW.md"
   elif [ -n "$(_find_workflow "$name")" ]; then
     # Auto-enable if not enabled
     echo "Enabling $name..."
     cmd_enable "$name"
-    wf_file="$ENABLED_DIR/$name/WORKFLOW.md"
+    local reg_path
+    reg_path="$(python3 -c "import sys,json; [print(e['path']) for e in json.load(sys.stdin) if e.get('name')=='$name']" <<< "$(_json_read)" 2>/dev/null)"
+    wf_file="$CLAWFLOWS_DIR/clawflows/$reg_path/WORKFLOW.md"
   else
     die "workflow '$name' not found"
   fi
@@ -1810,7 +1982,7 @@ _build_dashboard_json() {
     seen_names="$seen_names $name "
 
     local enabled="false"
-    if [ -L "$ENABLED_DIR/$name" ] || [ -d "$ENABLED_DIR/$name" ]; then
+    if _json_is_enabled "$name"; then
       enabled="true"
     fi
     manifest="$manifest
@@ -1832,7 +2004,7 @@ created|$enabled|${dir%/}/WORKFLOW.md"
         seen_names="$seen_names $name "
 
         local enabled="false"
-        if [ -L "$ENABLED_DIR/$name" ] || [ -d "$ENABLED_DIR/$name" ]; then
+        if _json_is_enabled "$name"; then
           enabled="true"
         fi
         manifest="$manifest
@@ -2085,8 +2257,6 @@ cmd_dashboard() {
 HUB_URL="${CLAWFLOWS_HUB_URL:-https://clawflows.ai}"
 HUB_DIR="$HOME/.clawflows"
 HUB_TOKEN_FILE="$HUB_DIR/token"
-HUB_INSTALLED_FILE="$HUB_DIR/installed.json"
-
 _hub_ensure_dir() {
   mkdir -p "$HUB_DIR"
 }
@@ -2101,19 +2271,6 @@ _hub_save_token() {
   _hub_ensure_dir
   printf '%s' "$1" > "$HUB_TOKEN_FILE"
   chmod 600 "$HUB_TOKEN_FILE"
-}
-
-_hub_get_installed() {
-  if [ -f "$HUB_INSTALLED_FILE" ]; then
-    cat "$HUB_INSTALLED_FILE"
-  else
-    echo "{}"
-  fi
-}
-
-_hub_save_installed() {
-  _hub_ensure_dir
-  printf '%s' "$1" > "$HUB_INSTALLED_FILE"
 }
 
 # ── Web Commands ────────────────────────────────────────────────────────────
@@ -2199,7 +2356,6 @@ cmd_web_sync() {
     mv "$old_workflows_dir" "$CLAWFLOWS_DIR/clawflows"
     echo "  Migrated workflows/ to clawflows/"
   elif [ -d "$old_workflows_dir" ] && [ -d "$CLAWFLOWS_DIR/clawflows" ]; then
-    # Both exist — move contents from old to new
     for sub in available enabled; do
       if [ -d "$old_workflows_dir/$sub" ]; then
         cp -rn "$old_workflows_dir/$sub/"* "$CLAWFLOWS_DIR/clawflows/$sub/" 2>/dev/null || true
@@ -2209,12 +2365,30 @@ cmd_web_sync() {
     echo "  Migrated workflows/ to clawflows/"
   fi
 
-  # One-time migration: rename custom/ to created/
+  # One-time migration: rename custom/ to created/ (check both old locations)
   local old_custom_dir="$CLAWFLOWS_DIR/clawflows/available/custom"
   if [ -d "$old_custom_dir" ]; then
-    if [ -d "$CREATED_DIR" ]; then
-      # Merge: move any workflows from custom/ that aren't already in created/
-      for wf in "$old_custom_dir"/*/; do
+    mkdir -p "$CREATED_DIR"
+    for wf in "$old_custom_dir"/*/; do
+      [ -d "$wf" ] || continue
+      local wf_name
+      wf_name="$(basename "$wf")"
+      [ "$wf_name" = ".gitkeep" ] && continue
+      if [ ! -d "$CREATED_DIR/$wf_name" ]; then
+        mv "$wf" "$CREATED_DIR/$wf_name"
+      fi
+    done
+    rm -rf "$old_custom_dir"
+    echo "  Migrated custom/ to created/"
+  fi
+
+  # One-time migration: move available/ contents up to clawflows/
+  local old_available_dir="$CLAWFLOWS_DIR/clawflows/available"
+  if [ -d "$old_available_dir" ]; then
+    # Move created/ up if it exists under available/
+    if [ -d "$old_available_dir/created" ]; then
+      mkdir -p "$CREATED_DIR"
+      for wf in "$old_available_dir/created"/*/; do
         [ -d "$wf" ] || continue
         local wf_name
         wf_name="$(basename "$wf")"
@@ -2223,57 +2397,157 @@ cmd_web_sync() {
           mv "$wf" "$CREATED_DIR/$wf_name"
         fi
       done
-      rm -rf "$old_custom_dir"
-    else
-      mv "$old_custom_dir" "$CREATED_DIR"
+      rm -rf "$old_available_dir/created"
     fi
-    # Update symlinks pointing to old custom/ path
-    for link in "$ENABLED_DIR"/*/; do
-      [ -L "${link%/}" ] || continue
-      local target
-      target="$(readlink "${link%/}")"
-      case "$target" in
-        *"/available/custom/"*)
-          local wf_name
-          wf_name="$(basename "${link%/}")"
-          if [ -d "$CREATED_DIR/$wf_name" ]; then
-            rm "${link%/}"
-            ln -s "$CREATED_DIR/$wf_name" "$ENABLED_DIR/$wf_name"
-          fi
-          ;;
-      esac
-    done
-    echo "  Migrated custom/ to created/"
+    # Move installed/ up if it exists under available/
+    if [ -d "$old_available_dir/installed" ]; then
+      mkdir -p "$INSTALLED_DIR"
+      for agent_dir in "$old_available_dir/installed"/*/; do
+        [ -d "$agent_dir" ] || continue
+        local agent_id
+        agent_id="$(basename "$agent_dir")"
+        if [ ! -d "$INSTALLED_DIR/$agent_id" ]; then
+          mv "$agent_dir" "$INSTALLED_DIR/$agent_id"
+        else
+          for wf in "$agent_dir"*/; do
+            [ -d "$wf" ] || continue
+            local wf_name
+            wf_name="$(basename "$wf")"
+            if [ ! -d "$INSTALLED_DIR/$agent_id/$wf_name" ]; then
+              mv "$wf" "$INSTALLED_DIR/$agent_id/$wf_name"
+            fi
+          done
+        fi
+      done
+      rm -rf "$old_available_dir/installed"
+    fi
+    # Move community/ to installed if still present
+    if [ -d "$old_available_dir/community" ]; then
+      local community_dir="$old_available_dir/community"
+      for wf in "$community_dir"/*/; do
+        [ -d "$wf" ] || continue
+        local wf_name
+        wf_name="$(basename "$wf")"
+        local dest="$INSTALLED_DIR/1/$wf_name"
+        if [ ! -d "$dest" ]; then
+          mkdir -p "$dest"
+          cp -r "$wf"* "$dest/" 2>/dev/null || true
+        fi
+      done
+      rm -rf "$community_dir"
+    fi
+    # Clean up available/ if empty
+    rmdir "$old_available_dir" 2>/dev/null || true
+    echo "  Migrated available/ directory structure"
   fi
 
-  # One-time migration: move enabled community workflows to installed/clawflowsagent/
-  if [ -d "$COMMUNITY_DIR" ]; then
-    local migrated=0
-    for link in "$ENABLED_DIR"/*/; do
-      [ -L "${link%/}" ] || continue
-      local target
-      target="$(readlink "${link%/}")"
-      case "$target" in
-        *"/available/community/"*)
-          local wf_name
-          wf_name="$(basename "${link%/}")"
-          local dest="$INSTALLED_DIR/1/$wf_name"
-          mkdir -p "$dest"
-          cp -r "$COMMUNITY_DIR/$wf_name/"* "$dest/" 2>/dev/null || true
-          rm "${link%/}"
-          ln -s "$dest" "$ENABLED_DIR/$wf_name"
-          printf '{"agent_id":1,"username":"clawflowsagent"}' > "$INSTALLED_DIR/1/.agent.json"
-          migrated=$((migrated + 1))
-          ;;
-      esac
+  # One-time migration: build clawflows.json from symlinks in enabled/
+  local old_enabled_dir="$CLAWFLOWS_DIR/clawflows/enabled"
+  if [ -d "$old_enabled_dir" ] && [ ! -f "$CLAWFLOWS_JSON" ]; then
+    echo "  Building clawflows.json from enabled symlinks..."
+    local now
+    now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    local migration_entries="["
+    local mig_first=true
+
+    for link in "$old_enabled_dir"/*; do
+      [ -e "$link" ] || [ -L "$link" ] || continue
+      local wf_name
+      wf_name="$(basename "$link")"
+      [ "$wf_name" = ".gitkeep" ] && continue
+
+      # Resolve symlink target
+      local target=""
+      if [ -L "$link" ]; then
+        target="$(readlink "$link")"
+      fi
+
+      local source rel_path schedule agent_id username version
+      schedule=""
+
+      # Determine source from target path
+      if [ -d "$CREATED_DIR/$wf_name" ]; then
+        source="created"
+        rel_path="created/$wf_name"
+        if [ -f "$CREATED_DIR/$wf_name/WORKFLOW.md" ]; then
+          schedule="$(get_field "$CREATED_DIR/$wf_name/WORKFLOW.md" schedule)"
+        fi
+      else
+        # Check installed/
+        local found_installed=false
+        if [ -d "$INSTALLED_DIR" ]; then
+          for agent_dir in "$INSTALLED_DIR"/*/; do
+            [ -d "$agent_dir" ] || continue
+            if [ -d "$agent_dir$wf_name" ]; then
+              agent_id="$(basename "$agent_dir")"
+              source="installed"
+              rel_path="installed/$agent_id/$wf_name"
+              if [ -f "$agent_dir$wf_name/WORKFLOW.md" ]; then
+                schedule="$(get_field "$agent_dir$wf_name/WORKFLOW.md" schedule)"
+              fi
+              # Read username from .agent.json
+              username=""
+              if [ -f "$agent_dir.agent.json" ]; then
+                username="$(python3 -c 'import sys,json; print(json.load(sys.stdin).get("username",""))' < "$agent_dir.agent.json" 2>/dev/null)"
+              fi
+              # Read version from installed.json
+              version="1"
+              if [ -f "$HOME/.clawflows/installed.json" ]; then
+                version="$(python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+v = d.get('$agent_id/$wf_name', {}).get('version', 1)
+print(v)
+" < "$HOME/.clawflows/installed.json" 2>/dev/null || echo "1")"
+              fi
+              found_installed=true
+              break
+            fi
+          done
+        fi
+        if ! $found_installed; then
+          # Workflow on disk somewhere but can't determine — skip
+          continue
+        fi
+      fi
+
+      if [ "$mig_first" = true ]; then
+        mig_first=false
+      else
+        migration_entries="$migration_entries,"
+      fi
+
+      if [ "$source" = "installed" ]; then
+        migration_entries="$migration_entries{\"name\":\"$wf_name\",\"schedule\":\"${schedule:-}\",\"path\":\"$rel_path\",\"source\":\"installed\",\"agent_id\":\"$agent_id\",\"username\":\"${username:-}\",\"version\":${version:-1},\"created_at\":\"$now\"}"
+      else
+        migration_entries="$migration_entries{\"name\":\"$wf_name\",\"schedule\":\"${schedule:-}\",\"path\":\"$rel_path\",\"source\":\"created\",\"created_at\":\"$now\"}"
+      fi
     done
-    rm -rf "$COMMUNITY_DIR"
-    [ "$migrated" -gt 0 ] && echo "  Migrated $migrated community workflow(s) to installed/clawflowsagent/"
+
+    migration_entries="$migration_entries]"
+    printf '%s' "$migration_entries" | python3 -c "import sys,json; json.dump(json.load(sys.stdin), open('$CLAWFLOWS_JSON','w'), indent=2)" 2>/dev/null
+    echo "  Built clawflows.json with $(python3 -c "import json; print(len(json.load(open('$CLAWFLOWS_JSON'))))" 2>/dev/null || echo "0") entries"
+  fi
+
+  # Clean up old enabled/ directory and .agent.json files
+  if [ -d "$old_enabled_dir" ] && [ -f "$CLAWFLOWS_JSON" ]; then
+    rm -rf "$old_enabled_dir"
+    echo "  Removed old enabled/ directory"
+  fi
+
+  # Clean up old installed.json
+  if [ -f "$HOME/.clawflows/installed.json" ] && [ -f "$CLAWFLOWS_JSON" ]; then
+    rm -f "$HOME/.clawflows/installed.json"
+  fi
+
+  # Ensure clawflows.json exists
+  if [ ! -f "$CLAWFLOWS_JSON" ]; then
+    echo "[]" > "$CLAWFLOWS_JSON"
   fi
 
   echo "Syncing workflows to ClawFlows Web..."
 
-  # Build the workflow list from created/ and enabled/
+  # Build the workflow list from created/
   local workflows_json="["
   local first=true
   local created_count=0
@@ -2362,12 +2636,16 @@ cmd_web_sync() {
     profile_json="{\"model\":\"$oc_model\"}"
   fi
 
+  # Read current clawflows.json to send to server
+  local clawflows_json
+  clawflows_json="$(_json_read)"
+
   # Send to hub
   local response
   response="$(curl -sf -X POST "$HUB_URL/api/sync" \
     -H "Authorization: Bearer $token" \
     -H "Content-Type: application/json" \
-    -d "{\"profile\":$profile_json,\"workflows\":$workflows_json,\"run_counts\":$run_counts}")" || die "Sync failed. Try: clawflows login"
+    -d "{\"profile\":$profile_json,\"workflows\":$workflows_json,\"run_counts\":$run_counts,\"clawflows\":$clawflows_json}")" || die "Sync failed. Try: clawflows login"
 
   local total created updated
   total="$(printf '%s' "$response" | grep -o '"total":[0-9]*' | sed 's/"total"://')"
@@ -2379,109 +2657,49 @@ cmd_web_sync() {
   [ "${created:-0}" -gt 0 ] && echo "     $created new" || true
   [ "${updated:-0}" -gt 0 ] && echo "     $updated updated" || true
 
-  # Sync visibility changes from web back to local frontmatter
-  if [ -d "$CREATED_DIR" ]; then
-    local vis_updated=0
-    for dir in "$CREATED_DIR"/*/; do
-      [ -d "$dir" ] || continue
-      local wf_file="$dir/WORKFLOW.md"
-      [ -f "$wf_file" ] || continue
-      local wf_slug
-      wf_slug="$(basename "$dir")"
-      local server_vis
-      server_vis="$(printf '%s' "$response" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('visibility',{}).get('$wf_slug',''))" 2>/dev/null)" || true
-      [ -n "$server_vis" ] || continue
-
-      local local_vis
-      local_vis="$(get_field "$wf_file" visibility)"
-      [ -n "$local_vis" ] || local_vis="public"
-
-      if [ "$server_vis" != "$local_vis" ]; then
-        # Update or add visibility in frontmatter using python for reliability
-        python3 -c "
-import sys
-path = sys.argv[1]
-vis = sys.argv[2]
-with open(path, 'r') as f:
-    content = f.read()
-lines = content.split('\n')
-new_lines = []
-in_fm = 0
-replaced = False
-for line in lines:
-    if line.strip() == '---':
-        in_fm += 1
-        if in_fm == 2 and not replaced:
-            new_lines.append('visibility: ' + vis)
-            replaced = True
-        new_lines.append(line)
-        continue
-    if in_fm == 1 and line.startswith('visibility:'):
-        new_lines.append('visibility: ' + vis)
-        replaced = True
-        continue
-    new_lines.append(line)
-with open(path, 'w') as f:
-    f.write('\n'.join(new_lines))
-" "$wf_file" "$server_vis" 2>/dev/null
-        vis_updated=$((vis_updated + 1))
-      fi
-    done
-    [ "$vis_updated" -gt 0 ] && echo "     $vis_updated visibility update(s) from web" || true
-  fi
-
-  # Process pending installs from web
-  local install_count=0
-  local pending
-  pending="$(printf '%s' "$response" | python3 -c "
+  # Save server clawflows.json (only if server returned one)
+  printf '%s' "$response" | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
-for item in d.get('pending_installs', []):
-    print(json.dumps(item))
-" 2>/dev/null)" || true
+if 'clawflows' in d:
+    with open('$CLAWFLOWS_JSON', 'w') as f:
+        json.dump(d['clawflows'], f, indent=2)
+" 2>/dev/null
 
-  if [ -n "$pending" ]; then
-    while IFS= read -r item; do
-      [ -n "$item" ] || continue
-      local agent agent_id slug name content version
-      agent="$(printf '%s' "$item" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("agent",""))' 2>/dev/null)"
-      agent_id="$(printf '%s' "$item" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("agent_id",""))' 2>/dev/null)"
-      slug="$(printf '%s' "$item" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("slug",""))' 2>/dev/null)"
-      name="$(printf '%s' "$item" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("name",""))' 2>/dev/null)"
-      content="$(printf '%s' "$item" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("content",""))' 2>/dev/null)"
-      version="$(printf '%s' "$item" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("version",1))' 2>/dev/null)"
+  # Process updates from server (file writes and deletes)
+  printf '%s' "$response" | python3 -c "
+import sys, json, os
 
-      [ -n "$agent_id" ] && [ -n "$slug" ] && [ -n "$content" ] || continue
-
-      # Save to installed/{agent_id}/{slug}/
-      local target_dir="$INSTALLED_DIR/$agent_id/$slug"
-      mkdir -p "$target_dir"
-      printf '%s' "$content" > "$target_dir/WORKFLOW.md"
-
-      # Write .agent.json for display
-      printf '{"agent_id":%s,"username":"%s"}' "$agent_id" "$agent" > "$INSTALLED_DIR/$agent_id/.agent.json"
-
-      # Auto-enable
-      if [ ! -L "$ENABLED_DIR/$slug" ] && [ ! -d "$ENABLED_DIR/$slug" ]; then
-        ln -s "$target_dir" "$ENABLED_DIR/$slug"
-      fi
-
-      # Track in installed.json
-      local installed
-      installed="$(_hub_get_installed)"
-      installed="$(printf '%s' "$installed" | python3 -c "
-import sys, json
 d = json.load(sys.stdin)
-d['$agent_id/$slug'] = {'version': $version, 'installed_at': '$(date -u +%Y-%m-%dT%H:%M:%SZ)', 'username': '$agent'}
-print(json.dumps(d))
-" 2>/dev/null || echo "$installed")"
-      _hub_save_installed "$installed"
+base = '$CLAWFLOWS_DIR/clawflows'
+writes = 0
+deletes = 0
 
-      install_count=$((install_count + 1))
-    done <<< "$pending"
-  fi
+for u in d.get('updates', []):
+    action = u.get('action', '')
+    path = u.get('path', '')
 
-  [ "$install_count" -gt 0 ] && echo "  ✅ $install_count clawflow(s) installed from web" || true
+    if not action or not path:
+        continue
+
+    full_path = os.path.join(base, path)
+
+    if action == 'write':
+        content = u.get('content', '')
+        os.makedirs(full_path, exist_ok=True)
+        with open(os.path.join(full_path, 'WORKFLOW.md'), 'w') as f:
+            f.write(content)
+        writes += 1
+    elif action == 'delete':
+        import shutil
+        if os.path.isdir(full_path):
+            shutil.rmtree(full_path)
+            deletes += 1
+
+if writes: print(f'  ✅ {writes} clawflow(s) installed/updated from web')
+if deletes: print(f'  🗑  {deletes} clawflow(s) removed')
+" 2>/dev/null
+
   echo ""
 }
 
@@ -2605,19 +2823,14 @@ cmd_web_install() {
   mkdir -p "$target_dir"
   printf '%s' "$content" > "$target_dir/WORKFLOW.md"
 
-  # Write .agent.json for display purposes
-  printf '{"agent_id":%s,"username":"%s"}' "$agent_id" "$agent_name" > "$INSTALLED_DIR/$agent_id/.agent.json"
+  # Read schedule from the installed workflow
+  local inst_schedule
+  inst_schedule="$(get_field "$target_dir/WORKFLOW.md" schedule)"
 
-  # Track installation
-  local installed
-  installed="$(_hub_get_installed)"
-  installed="$(printf '%s' "$installed" | python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-d['$agent_id/$workflow_name'] = {'version': ${version:-1}, 'installed_at': '$(date -u +%Y-%m-%dT%H:%M:%SZ)', 'username': '$agent_name'}
-print(json.dumps(d))
-" 2>/dev/null || echo "$installed")"
-  _hub_save_installed "$installed"
+  # Track in clawflows.json
+  local now
+  now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  _json_add "{\"name\":\"$workflow_name\",\"schedule\":\"${inst_schedule:-}\",\"path\":\"installed/$agent_id/$workflow_name\",\"source\":\"installed\",\"agent_id\":\"$agent_id\",\"username\":\"$agent_name\",\"version\":${version:-1},\"created_at\":\"$now\"}"
 
   echo ""
   echo "  ✅ Installed $name (@$agent_name/$workflow_name) v${version:-1}"
@@ -2631,22 +2844,22 @@ cmd_web_update() {
   local token
   token="$(_hub_get_token)"
 
-  local installed
-  installed="$(_hub_get_installed)"
-
-  # Build installed list for the API
+  # Build installed list from clawflows.json
   local installed_json
-  installed_json="$(printf '%s' "$installed" | python3 -c "
+  installed_json="$(python3 -c "
 import sys, json
-d = json.load(sys.stdin)
+data = json.load(sys.stdin)
 result = []
-for key, val in d.items():
-    parts = key.split('/')
-    if len(parts) == 2:
-        username = val.get('username', parts[0])
-        result.append({'agent': username, 'slug': parts[1], 'version': val.get('version', 1)})
+for entry in data:
+    if entry.get('source') == 'installed':
+        agent_id = entry.get('agent_id', '')
+        result.append({
+            'agent_id': agent_id,
+            'slug': entry.get('name', ''),
+            'version': entry.get('version', 1)
+        })
 print(json.dumps(result))
-" 2>/dev/null || echo "[]")"
+" <<< "$(_json_read)" 2>/dev/null || echo "[]")"
 
   if [ "$installed_json" = "[]" ]; then
     echo "No web-installed workflows to check."

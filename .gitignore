@@ -1,7 +1,8 @@
-clawflows/enabled/*
-!clawflows/enabled/.gitkeep
-clawflows/available/created/*
-!clawflows/available/created/.gitkeep
+clawflows/created/*
+!clawflows/created/.gitkeep
+clawflows/installed/*
+!clawflows/installed/.gitkeep
+clawflows/clawflows.json
 system/runs/
 system/.dashboard-state
 .vercel

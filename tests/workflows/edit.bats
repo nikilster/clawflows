@@ -36,24 +36,40 @@ teardown() {
     assert_output --partial "${CREATED_DIR}/my-custom/WORKFLOW.md"
 }
 
-@test "edit: updates symlink to created version if enabled" {
+@test "edit: updates registry to created version if enabled" {
     create_installed_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
 
     # Verify it points to installed first
-    local before_target
-    before_target="$(readlink "${ENABLED_DIR}/test-workflow")"
-    [[ "$before_target" == *"installed"* ]]
+    local before_path
+    before_path="$(python3 -c "
+import json
+with open('${REGISTRY_FILE}', 'r') as f:
+    data = json.load(f)
+for e in data:
+    if e.get('name') == 'test-workflow':
+        print(e.get('path', ''))
+        break
+")"
+    [[ "$before_path" == *"installed"* ]]
 
     run_clawflows edit test-workflow
 
     assert_success
-    assert_output --partial "updated symlink to created version"
+    assert_output --partial "updated registry to created version"
 
     # Now should point to created
-    local after_target
-    after_target="$(readlink "${ENABLED_DIR}/test-workflow")"
-    [[ "$after_target" == *"created"* ]]
+    local after_path
+    after_path="$(python3 -c "
+import json
+with open('${REGISTRY_FILE}', 'r') as f:
+    data = json.load(f)
+for e in data:
+    if e.get('name') == 'test-workflow':
+        print(e.get('path', ''))
+        break
+")"
+    [[ "$after_path" == *"created"* ]]
 }
 
 @test "edit: non-existent workflow fails" {

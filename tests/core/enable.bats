@@ -22,7 +22,7 @@ teardown() {
 
     assert_success
     assert_output --partial "test-workflow enabled"
-    assert [ -L "${ENABLED_DIR}/test-workflow" ]
+    assert_workflow_enabled "test-workflow"
 }
 
 @test "enable: shows description and schedule" {
@@ -54,10 +54,18 @@ teardown() {
     run_clawflows enable test-workflow
 
     assert_success
-    # Should link to created, not installed
-    local target
-    target="$(readlink "${ENABLED_DIR}/test-workflow")"
-    assert [ "$target" = "${CREATED_DIR}/test-workflow" ]
+    # Should use created source, not installed
+    local reg_source
+    reg_source="$(python3 -c "
+import json
+with open('${REGISTRY_FILE}', 'r') as f:
+    data = json.load(f)
+for e in data:
+    if e.get('name') == 'test-workflow':
+        print(e.get('source', ''))
+        break
+")"
+    assert [ "$reg_source" = "created" ]
 }
 
 @test "enable: already-enabled workflow is idempotent" {
@@ -77,14 +85,24 @@ teardown() {
     assert_output --partial "workflow 'nonexistent-workflow' not found"
 }
 
-@test "enable: creates valid symlink to source directory" {
+@test "enable: adds entry to registry with correct path" {
     create_installed_workflow "test-workflow" "🧪" "Test workflow"
 
     run_clawflows enable test-workflow
 
     assert_success
-    assert_is_symlink "${ENABLED_DIR}/test-workflow"
-    assert_symlink_target "${ENABLED_DIR}/test-workflow" "${INSTALLED_DIR}/testuser/test-workflow"
+    assert_workflow_enabled "test-workflow"
+    local reg_path
+    reg_path="$(python3 -c "
+import json
+with open('${REGISTRY_FILE}', 'r') as f:
+    data = json.load(f)
+for e in data:
+    if e.get('name') == 'test-workflow':
+        print(e.get('path', ''))
+        break
+")"
+    assert [ "$reg_path" = "installed/testuser/test-workflow" ]
 }
 
 @test "enable: calls sync-agent" {
@@ -94,7 +112,7 @@ teardown() {
     run_clawflows enable test-workflow
 
     assert_success
-    # Sync runs silently now — verify AGENTS.md was updated
+    # Sync runs silently now -- verify AGENTS.md was updated
     agents_md_contains "test-workflow"
 }
 
@@ -109,16 +127,24 @@ teardown() {
 # Edge Cases
 # ============================================================================
 
-@test "enable: workflow with custom already enabled links to created" {
+@test "enable: workflow with custom already enabled uses created source" {
     create_installed_workflow "my-workflow" "🌍" "Installed version"
     create_custom_workflow "my-workflow" "🏠" "Custom version"
 
     run_clawflows enable my-workflow
 
     assert_success
-    local target
-    target="$(readlink "${ENABLED_DIR}/my-workflow")"
-    [[ "$target" == *"created"* ]]
+    local reg_path
+    reg_path="$(python3 -c "
+import json
+with open('${REGISTRY_FILE}', 'r') as f:
+    data = json.load(f)
+for e in data:
+    if e.get('name') == 'my-workflow':
+        print(e.get('path', ''))
+        break
+")"
+    [[ "$reg_path" == *"created"* ]]
 }
 
 @test "enable: multiple workflows can be enabled" {
@@ -131,6 +157,6 @@ teardown() {
     run_clawflows enable workflow-b
     assert_success
 
-    assert [ -L "${ENABLED_DIR}/workflow-a" ]
-    assert [ -L "${ENABLED_DIR}/workflow-b" ]
+    assert_workflow_enabled "workflow-a"
+    assert_workflow_enabled "workflow-b"
 }

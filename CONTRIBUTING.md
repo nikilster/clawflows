@@ -99,7 +99,7 @@ This will:
 1. **Submit** — Open a PR with your workflow
 2. **Review** — Maintainers will review for quality and safety
 3. **Feedback** — We may request changes
-4. **Merge** — Approved workflows get moved to `clawflows/available/community/`
+4. **Merge** — Approved workflows get moved to the community collection
 
 ### What We Look For
 

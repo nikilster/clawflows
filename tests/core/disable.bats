@@ -23,7 +23,7 @@ teardown() {
 
     assert_success
     assert_output --partial "disabled: test-workflow"
-    assert [ ! -e "${ENABLED_DIR}/test-workflow" ]
+    assert_workflow_not_enabled "test-workflow"
 }
 
 @test "disable: non-enabled workflow reports not enabled" {
@@ -36,15 +36,15 @@ teardown() {
     assert_output --partial "not enabled: test-workflow"
 }
 
-@test "disable: removes symlink but not source" {
+@test "disable: removes from registry but not source files" {
     create_installed_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
 
     run_clawflows disable test-workflow
 
     assert_success
-    # Symlink should be gone
-    assert [ ! -L "${ENABLED_DIR}/test-workflow" ]
+    # Should not be in registry
+    assert_workflow_not_enabled "test-workflow"
     # Source should still exist
     assert [ -d "${INSTALLED_DIR}/testuser/test-workflow" ]
     assert [ -f "${INSTALLED_DIR}/testuser/test-workflow/WORKFLOW.md" ]
@@ -90,11 +90,11 @@ teardown() {
 
     run_clawflows disable test-workflow
     assert_success
-    assert [ ! -e "${ENABLED_DIR}/test-workflow" ]
+    assert_workflow_not_enabled "test-workflow"
 
     run_clawflows enable test-workflow
     assert_success
-    assert [ -L "${ENABLED_DIR}/test-workflow" ]
+    assert_workflow_enabled "test-workflow"
 }
 
 @test "disable: workflow not in available still reports not enabled" {
@@ -103,17 +103,4 @@ teardown() {
 
     assert_success
     assert_output --partial "not enabled: totally-fake-workflow"
-}
-
-@test "disable: handles directory (not symlink) in enabled" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
-    # Create a real directory instead of symlink (edge case)
-    mkdir -p "${ENABLED_DIR}/test-workflow"
-    cp "${INSTALLED_DIR}/testuser/test-workflow/WORKFLOW.md" "${ENABLED_DIR}/test-workflow/"
-
-    run_clawflows disable test-workflow
-
-    assert_success
-    assert_output --partial "disabled: test-workflow"
-    assert [ ! -e "${ENABLED_DIR}/test-workflow" ]
 }

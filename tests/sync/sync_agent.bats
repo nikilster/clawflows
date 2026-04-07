@@ -87,10 +87,16 @@ teardown() {
     assert_output --partial "9am"
 }
 
-@test "sync-agent: with broken symlinks skips them" {
+@test "sync-agent: with broken registry entries skips them" {
     create_installed_workflow "valid-workflow" "✅" "Valid workflow"
     enable_workflow "valid-workflow"
-    create_broken_symlink "broken-workflow"
+    # Add a broken entry
+    python3 -c "
+import json
+data = json.load(open('${REGISTRY_FILE}'))
+data.append({'name': 'broken-workflow', 'schedule': '', 'path': 'installed/999/broken-workflow', 'source': 'installed', 'created_at': '2026-01-01T00:00:00Z'})
+json.dump(data, open('${REGISTRY_FILE}', 'w'), indent=2)
+"
     touch "$AGENTS_MD"
 
     run_clawflows sync-agent

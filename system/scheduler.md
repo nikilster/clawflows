@@ -8,11 +8,14 @@ Note the current time and date.
 
 ## 2. Read Enabled Workflows
 
-List all workflows in `clawflows/enabled/`. For each one, read the `WORKFLOW.md` frontmatter to get:
+Read `clawflows/clawflows.json` — it's a JSON array of enabled workflow entries. Each entry has:
 - `name`
-- `schedule` (if present)
+- `schedule` (empty string for on-demand)
+- `path` (relative to `clawflows/`)
 
-Skip workflows without a `schedule` field — they're on-demand only.
+Skip entries where `schedule` is empty — they're on-demand only.
+
+For each scheduled workflow, read its `WORKFLOW.md` at `clawflows/<path>/WORKFLOW.md` to get the full schedule from frontmatter if needed.
 
 ## 3. Parse Schedules
 
@@ -55,7 +58,7 @@ For each workflow that is due and hasn't run:
    ```
 
    Good log examples:
-   - "Sent briefing: 65°F, 3 meetings today, 2 priority tasks"
+   - "Sent briefing: 65F, 3 meetings today, 2 priority tasks"
    - "Triaged 12 emails: archived 8 junk, flagged 2 urgent, 2 need reply"
    - "No calendar conflicts in next 48 hours. Next meeting: standup at 9am"
 
@@ -68,6 +71,6 @@ If nothing was due, respond with `HEARTBEAT_OK`.
 ## Notes
 
 - This runs every 15 minutes via cron
-- Workflows are in `clawflows/enabled/`, not `clawflows/available/`
-- Only run workflows with a `schedule` field
+- Enabled workflows are listed in `clawflows/clawflows.json`
+- Only run workflows with a non-empty `schedule` field
 - Respect the run history — don't double-run

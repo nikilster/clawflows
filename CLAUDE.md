@@ -13,25 +13,24 @@ clawflows/
 │   ├── scheduler.md           # Scheduler instructions
 │   └── runs/                  # Execution history (gitignored)
 ├── clawflows/
-│   ├── available/
-│   │   ├── created/           # User-created clawflows (gitignored)
-│   │   └── installed/         # From clawflows.ai (namespaced: {agent_id}/{slug}/)
-│   └── enabled/               # Symlinks to active clawflows (gitignored)
+│   ├── created/               # User-created clawflows (gitignored)
+│   ├── installed/             # From clawflows.ai (namespaced: {agent_id}/{slug}/)
+│   └── clawflows.json         # Registry of enabled workflows (gitignored)
 └── docs/
     └── creating-workflows.md  # Workflow creation guide
 ```
 
 ## Key Architecture Decisions
 
-### Symlink-Based Activation
-- `enable` creates symlink: `enabled/name → available/created/name` or `available/installed/{agent_id}/name`
-- `disable` removes symlink only (never deletes files)
+### Registry-Based Activation
+- `enable` adds an entry to `clawflows/clawflows.json` with the workflow's name, path, source, and schedule
+- `disable` removes the entry from the registry (never deletes files)
 - Created clawflows override installed by name
 
 ### What's Gitignored
-- `clawflows/enabled/*` — user's active clawflows
-- `clawflows/available/created/*` — user's created clawflows
-- `clawflows/available/installed/*` — clawflows installed from clawflows.ai
+- `clawflows/created/*` — user's created clawflows
+- `clawflows/installed/*` — clawflows installed from clawflows.ai
+- `clawflows/clawflows.json` — registry of enabled workflows
 - `system/runs/` — execution history
 
 ### AGENTS.md Sync (Critical!)
@@ -92,7 +91,7 @@ die() { echo "error: $1" >&2; exit 1; }
 4. **IMPORTANT: Update `_build_block()`** — Add to CLI Commands section so the agent learns about it via AGENTS.md sync
 
 ### Workflow Lookup
-Always use `_find_workflow()` — checks custom/ before installed/:
+Always use `_find_workflow()` — checks created/ before installed/:
 ```bash
 source_dir="$(_find_workflow "$name")"
 [ -n "$source_dir" ] || die "workflow '$name' not found"
@@ -122,7 +121,7 @@ CLAWFLOWS_DIR="$(cd "$(dirname "$SELF")/../.." && pwd)"
 
 ### Never Do
 - Use bash 4+ features (associative arrays, `${var,,}` lowercasing)
-- Delete files via symlink path (delete the symlink itself)
+- Modify `clawflows.json` directly — always use `_json_add`/`_json_remove` helpers
 - Skip `cmd_sync` (agent-sync) after enable/disable/create
 
 ## Workflow Format
@@ -164,7 +163,7 @@ Tests use [BATS](https://github.com/bats-core/bats-core) (Bash Automated Testing
 - Test files go in `tests/core/` with a `.bats` extension
 - Load the shared helper: `load '../test_helper'`
 - Call `setup_test_environment` in `setup()` and `teardown_test_environment` in `teardown()`
-- Use helpers from `tests/test_helper.bash`: `create_custom_workflow`, `create_installed_workflow`, `enable_workflow`, `run_clawflows`, `mock_openclaw`, `create_test_backup`, etc.
+- Use helpers from `tests/test_helper.bash`: `create_custom_workflow`, `create_installed_workflow`, `enable_workflow`, `run_clawflows`, `mock_openclaw`, `create_test_backup`, `assert_workflow_enabled`, `assert_workflow_not_enabled`, etc.
 - Use `assert_success`, `assert_failure`, `assert_output --partial`, `refute_output --partial` from bats-assert
 
 Bash strict mode (`set -uo pipefail`) catches most errors immediately.
@@ -188,7 +187,7 @@ All in `system/cli/clawflows`. Search for `cmd_commandname()`.
 3. Update `docs/creating-workflows.md`
 
 ### Change what gets backed up
-Modify `cmd_backup()` — it creates a tar.gz with `custom/` and `enabled-workflows.txt`.
+Modify `cmd_backup()` — it creates a tar.gz with `created/` and `clawflows.json`.
 
 ## ClawFlows.ai Integration
 
@@ -198,7 +197,7 @@ The CLI integrates with [ClawFlows.ai](https://clawflows.ai) — a web platform 
 
 ```bash
 clawflows login [token]       # Save auth token (get from clawflows.ai/setup after signup)
-clawflows sync                # Push custom/ workflows + run counts, pull pending installs
+clawflows sync                # Push created/ workflows + registry, pull updates from server
 clawflows explore             # Browse recommended workflows
 clawflows explore <query>     # Browse by topic
 clawflows search <query>      # Search workflows by name/description
@@ -212,7 +211,7 @@ The `clawflows web <cmd>` prefix still works as an alias.
 ### Local state
 
 - `~/.clawflows/token` — sync auth token (plain text, chmod 600)
-- `~/.clawflows/installed.json` — tracks installed workflows with keys like `{agent_id}/{slug}` and version info
+- `clawflows/clawflows.json` — registry of enabled workflows (includes installed workflow versions, agent_id, username)
 
 ### API routes the CLI talks to
 
@@ -225,11 +224,11 @@ The `clawflows web <cmd>` prefix still works as an alias.
 
 ### Architecture notes
 
-- The CLI only syncs `clawflows/available/created/` — installed clawflows are not pushed back
+- The CLI only syncs `clawflows/created/` — installed clawflows are not pushed back
 - Content changes detected by SHA-256 hash — if hash changed since last sync, a new version is created
-- Install saves to `available/installed/{agent_id}/{slug}/WORKFLOW.md` with `.agent.json` for display name
-- Each agent dir has `.agent.json`: `{"agent_id": 7, "username": "dave"}`
-- On first sync after update, community/ workflows are migrated to `installed/1/` (clawflowsagent)
+- Install saves to `installed/{agent_id}/{slug}/WORKFLOW.md` and adds a registry entry in `clawflows.json`
+- The registry tracks agent_id, username, and version for installed workflows
+- On first sync after update, legacy directories are migrated to the new flat structure
 - `sync-clawflows-web` is auto-installed on first sync (queued by server)
 - Token-based auth (not Supabase session) — the sync token bypasses RLS via the admin client on the server
 - `HUB_URL` defaults to `https://clawflows.ai` (override with `CLAWFLOWS_HUB_URL` env var)

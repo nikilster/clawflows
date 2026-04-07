@@ -35,7 +35,7 @@ teardown() {
 
     assert_success
     assert_output --partial "Enabling test-workflow"
-    assert [ -L "${ENABLED_DIR}/test-workflow" ]
+    assert_workflow_enabled "test-workflow"
 }
 
 @test "run: auto-enables custom workflow if not enabled" {
@@ -46,7 +46,7 @@ teardown() {
 
     assert_success
     assert_output --partial "Enabling my-custom"
-    assert [ -L "${ENABLED_DIR}/my-custom" ]
+    assert_workflow_enabled "my-custom"
 }
 
 @test "run: non-existent workflow fails" {
@@ -95,9 +95,14 @@ teardown() {
 # ============================================================================
 
 @test "run: with missing WORKFLOW.md fails" {
-    # Create directory but not WORKFLOW.md
+    # Create directory but not WORKFLOW.md, add to registry manually
     mkdir -p "${INSTALLED_DIR}/testuser/broken-workflow"
-    ln -s "${INSTALLED_DIR}/testuser/broken-workflow" "${ENABLED_DIR}/broken-workflow"
+    python3 -c "
+import json
+data = json.load(open('${REGISTRY_FILE}'))
+data.append({'name': 'broken-workflow', 'schedule': '', 'path': 'installed/testuser/broken-workflow', 'source': 'installed', 'created_at': '2026-01-01T00:00:00Z'})
+json.dump(data, open('${REGISTRY_FILE}', 'w'), indent=2)
+"
 
     run_clawflows run broken-workflow
 
@@ -114,7 +119,28 @@ teardown() {
 
     assert_success
     # Should have enabled the custom one
-    local target
-    target="$(readlink "${ENABLED_DIR}/shared-name")"
-    [[ "$target" == *"created"* ]]
+    local reg_path
+    reg_path="$(python3 -c "
+import json
+with open('${REGISTRY_FILE}', 'r') as f:
+    data = json.load(f)
+for e in data:
+    if e.get('name') == 'shared-name':
+        print(e.get('path', ''))
+        break
+")"
+    [[ "$reg_path" == *"created"* ]]
+}
+
+@test "run: creates run file in system/runs" {
+    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+    enable_workflow "test-workflow"
+
+    run_clawflows run test-workflow
+
+    assert_success
+    # Check that a run file was created
+    local today
+    today="$(date +%Y-%m-%d)"
+    [ -d "${CLAWFLOWS_DIR}/system/runs/$today/test-workflow" ]
 }

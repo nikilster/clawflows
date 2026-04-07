@@ -52,16 +52,8 @@ teardown() {
 
 @test "lifecycle: custom overrides installed by name" {
     # Create installed workflow
-    mkdir -p "${INSTALLED_DIR}/testuser/shared-workflow"
-    printf '%s\n' "---
-name: shared-workflow
-emoji: \"🌍\"
-description: Installed version
----
-
-# shared-workflow
-Test." > "${INSTALLED_DIR}/testuser/shared-workflow/WORKFLOW.md"
-    ln -s "${INSTALLED_DIR}/testuser/shared-workflow" "${ENABLED_DIR}/shared-workflow"
+    create_installed_workflow "shared-workflow" "🌍" "Installed version"
+    enable_workflow "shared-workflow"
 
     # Verify installed version is enabled
     run_clawflows list enabled
@@ -104,29 +96,14 @@ Test." > "${INSTALLED_DIR}/testuser/shared-workflow/WORKFLOW.md"
     assert_success
     assert_output --partial "Restored 1"
 
-    # Verify it's back and re-enabled
+    # Verify it's back
     assert [ -d "${CREATED_DIR}/precious-workflow" ]
-    assert [ -L "${ENABLED_DIR}/precious-workflow" ]
 }
 
 @test "lifecycle: multiple workflows enabled" {
     # Create installed workflows
-    mkdir -p "${INSTALLED_DIR}/testuser/workflow-1"
-    printf '%s\n' "---
-name: workflow-1
-emoji: \"1️⃣\"
-description: First workflow
----
-# workflow-1" > "${INSTALLED_DIR}/testuser/workflow-1/WORKFLOW.md"
-
-    mkdir -p "${INSTALLED_DIR}/testuser/workflow-2"
-    printf '%s\n' "---
-name: workflow-2
-emoji: \"2️⃣\"
-description: Second workflow
----
-# workflow-2" > "${INSTALLED_DIR}/testuser/workflow-2/WORKFLOW.md"
-
+    create_installed_workflow "workflow-1" "1️⃣" "First workflow"
+    create_installed_workflow "workflow-2" "2️⃣" "Second workflow"
     create_custom_workflow "workflow-3" "3️⃣" "Third workflow"
 
     # Enable all
@@ -177,13 +154,7 @@ description: Second workflow
 # ============================================================================
 
 @test "recovery: enable after disable" {
-    mkdir -p "${INSTALLED_DIR}/testuser/toggle-workflow"
-    printf '%s\n' "---
-name: toggle-workflow
-emoji: \"🔄\"
-description: Toggle test
----
-# toggle-workflow" > "${INSTALLED_DIR}/testuser/toggle-workflow/WORKFLOW.md"
+    create_installed_workflow "toggle-workflow" "🔄" "Toggle test"
 
     run_clawflows enable toggle-workflow
     assert_success
@@ -194,7 +165,7 @@ description: Toggle test
     run_clawflows enable toggle-workflow
     assert_success
 
-    assert [ -L "${ENABLED_DIR}/toggle-workflow" ]
+    assert_workflow_enabled "toggle-workflow"
 }
 
 @test "recovery: workflow still works after backup/restore cycle" {

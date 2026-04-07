@@ -23,12 +23,12 @@ git pull origin main
 
 ## 4. Copy to community workflows
 
-Copy each new submission from `community-submissions/` to `clawflows/available/community/`:
+Copy each new submission from `community-submissions/` to the community workflows directory:
 
 ```bash
 # For each new workflow:
-mkdir -p clawflows/available/community/<name>
-cp community-submissions/<name>/WORKFLOW.md clawflows/available/community/<name>/WORKFLOW.md
+mkdir -p clawflows/installed/1/<name>
+cp community-submissions/<name>/WORKFLOW.md clawflows/installed/1/<name>/WORKFLOW.md
 ```
 
 ## 5. Update README.md
@@ -59,7 +59,7 @@ In the `🏆 Top Contributors` table:
 Update the header line `Including N prebuilt workflows you can enable in 1 click` with the new total. Verify with:
 
 ```bash
-ls -d clawflows/available/community/*/ | wc -l
+ls -d clawflows/installed/1/*/ | wc -l
 ```
 
 ## 6. Commit and push
@@ -67,7 +67,7 @@ ls -d clawflows/available/community/*/ | wc -l
 Stage only the files you changed:
 
 ```bash
-git add .gitignore README.md clawflows/available/community/<new-workflow-dirs>
+git add .gitignore README.md clawflows/installed/1/<new-workflow-dirs>
 git commit -m "Add <workflow-name> community workflow and update README"
 git push
 ```
@@ -86,4 +86,4 @@ git push
 - All H1 headings (`#`) must have an emoji prefix and a `<br>` tag on the line before them
 - Workflow tables have 3 columns: `Workflow | Schedule | What it does` (plus `Author` for community-created)
 - Schedule column shows the time from frontmatter, or "On-demand" if absent
-- All workflow authors in `clawflows/available/community/` should use `@davehappyminion` (not `@openclaw`)
+- All workflow authors in the community collection should use `@davehappyminion` (not `@openclaw`)

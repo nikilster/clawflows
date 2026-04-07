@@ -182,7 +182,7 @@ EOF
 
     [ "$status" -eq 0 ]
     echo "$output" | grep -q "auto-enable-wf enabled"
-    [ -L "${ENABLED_DIR}/auto-enable-wf" ]
+    assert_workflow_enabled "auto-enable-wf"
 }
 
 # ============================================================================

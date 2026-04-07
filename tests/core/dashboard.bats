@@ -298,7 +298,7 @@ start_dashboard_server() {
     start_dashboard_server
 
     # Should not be enabled yet
-    [[ ! -L "${ENABLED_DIR}/check-email" ]]
+    assert_workflow_not_enabled "check-email"
 
     # Enable via API
     local response
@@ -306,7 +306,7 @@ start_dashboard_server() {
     echo "$response" | grep -q '"ok":true'
 
     # Verify it's now enabled
-    [[ -L "${ENABLED_DIR}/check-email" ]]
+    assert_workflow_enabled "check-email"
 }
 
 @test "dashboard server: POST /api/disable disables a workflow" {
@@ -316,7 +316,7 @@ start_dashboard_server() {
     start_dashboard_server
 
     # Should be enabled
-    [[ -L "${ENABLED_DIR}/check-email" ]]
+    assert_workflow_enabled "check-email"
 
     # Disable via API
     local response
@@ -324,7 +324,7 @@ start_dashboard_server() {
     echo "$response" | grep -q '"ok":true'
 
     # Verify it's now disabled
-    [[ ! -L "${ENABLED_DIR}/check-email" ]]
+    assert_workflow_not_enabled "check-email"
 }
 
 @test "dashboard server: workflows update after enable/disable" {

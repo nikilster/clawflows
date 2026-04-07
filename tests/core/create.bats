@@ -46,7 +46,7 @@ teardown() {
 
     assert_success
     assert_output --partial "auto-enabled enabled"
-    assert [ -L "${ENABLED_DIR}/auto-enabled" ]
+    assert_workflow_enabled "auto-enabled"
 }
 
 @test "create --from-json: with missing name fails" {
