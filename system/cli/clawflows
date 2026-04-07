@@ -492,8 +492,12 @@ cmd_list() {
   if [ -d "$INSTALLED_DIR" ]; then
     for agent_dir in "$INSTALLED_DIR"/*/; do
       [ -d "$agent_dir" ] || continue
-      local agent_name
-      agent_name="$(basename "$agent_dir")"
+      local agent_label
+      if [ -f "$agent_dir.agent.json" ]; then
+        agent_label="@$(python3 -c 'import sys,json; print(json.load(sys.stdin).get("username","unknown"))' < "$agent_dir.agent.json" 2>/dev/null)"
+      else
+        agent_label="@$(basename "$agent_dir")"
+      fi
       for dir in "$agent_dir"*/; do
         [ -d "$dir" ] || continue
         name="$(basename "$dir")"
@@ -504,9 +508,9 @@ cmd_list() {
         found=true
 
         if [ -L "$ENABLED_DIR/$name" ] || [ -d "$ENABLED_DIR/$name" ]; then
-          enabled_lines+=("$(_workflow_line "$dir" "@$agent_name")")
+          enabled_lines+=("$(_workflow_line "$dir" "$agent_label")")
         else
-          available_lines+=("$(_workflow_line "$dir" "@$agent_name")")
+          available_lines+=("$(_workflow_line "$dir" "$agent_label")")
         fi
       done
     done
@@ -2198,11 +2202,12 @@ cmd_web_sync() {
         *"/available/community/"*)
           local wf_name
           wf_name="$(basename "${link%/}")"
-          local dest="$INSTALLED_DIR/clawflowsagent/$wf_name"
+          local dest="$INSTALLED_DIR/1/$wf_name"
           mkdir -p "$dest"
           cp -r "$COMMUNITY_DIR/$wf_name/"* "$dest/" 2>/dev/null || true
           rm "${link%/}"
           ln -s "$dest" "$ENABLED_DIR/$wf_name"
+          printf '{"agent_id":1,"username":"clawflowsagent"}' > "$INSTALLED_DIR/1/.agent.json"
           migrated=$((migrated + 1))
           ;;
       esac
@@ -2383,19 +2388,23 @@ for item in d.get('pending_installs', []):
   if [ -n "$pending" ]; then
     while IFS= read -r item; do
       [ -n "$item" ] || continue
-      local agent slug name content version
+      local agent agent_id slug name content version
       agent="$(printf '%s' "$item" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("agent",""))' 2>/dev/null)"
+      agent_id="$(printf '%s' "$item" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("agent_id",""))' 2>/dev/null)"
       slug="$(printf '%s' "$item" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("slug",""))' 2>/dev/null)"
       name="$(printf '%s' "$item" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("name",""))' 2>/dev/null)"
       content="$(printf '%s' "$item" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("content",""))' 2>/dev/null)"
       version="$(printf '%s' "$item" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("version",1))' 2>/dev/null)"
 
-      [ -n "$agent" ] && [ -n "$slug" ] && [ -n "$content" ] || continue
+      [ -n "$agent_id" ] && [ -n "$slug" ] && [ -n "$content" ] || continue
 
-      # Save to installed/agent/slug/
-      local target_dir="$INSTALLED_DIR/$agent/$slug"
+      # Save to installed/{agent_id}/{slug}/
+      local target_dir="$INSTALLED_DIR/$agent_id/$slug"
       mkdir -p "$target_dir"
       printf '%s' "$content" > "$target_dir/WORKFLOW.md"
+
+      # Write .agent.json for display
+      printf '{"agent_id":%s,"username":"%s"}' "$agent_id" "$agent" > "$INSTALLED_DIR/$agent_id/.agent.json"
 
       # Auto-enable
       if [ ! -L "$ENABLED_DIR/$slug" ] && [ ! -d "$ENABLED_DIR/$slug" ]; then
@@ -2408,7 +2417,7 @@ for item in d.get('pending_installs', []):
       installed="$(printf '%s' "$installed" | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
-d['@$agent/$slug'] = {'version': $version, 'installed_at': '$(date -u +%Y-%m-%dT%H:%M:%SZ)'}
+d['$agent_id/$slug'] = {'version': $version, 'installed_at': '$(date -u +%Y-%m-%dT%H:%M:%SZ)', 'username': '$agent'}
 print(json.dumps(d))
 " 2>/dev/null || echo "$installed")"
       _hub_save_installed "$installed"
@@ -2527,26 +2536,30 @@ cmd_web_install() {
   fi
   response="$(cat /tmp/clawflows_install.json)"
 
-  local content version name
+  local content version name agent_id
   content="$(printf '%s' "$response" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("content",""))' 2>/dev/null)"
   version="$(printf '%s' "$response" | grep -o '"version":[0-9]*' | sed 's/"version"://')"
   name="$(printf '%s' "$response" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("name",""))' 2>/dev/null)"
+  agent_id="$(printf '%s' "$response" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("agent_id",""))' 2>/dev/null)"
 
   [ -n "$content" ] || die "Workflow has no content. The author hasn't synced it yet."
+  [ -n "$agent_id" ] || die "Server did not return agent_id. Try updating your CLI."
 
-  # Save to installed/username/workflow/ directory
-  local target_dir="$INSTALLED_DIR/$agent_name/$workflow_name"
+  # Save to installed/{agent_id}/{slug}/
+  local target_dir="$INSTALLED_DIR/$agent_id/$workflow_name"
   mkdir -p "$target_dir"
   printf '%s' "$content" > "$target_dir/WORKFLOW.md"
+
+  # Write .agent.json for display purposes
+  printf '{"agent_id":%s,"username":"%s"}' "$agent_id" "$agent_name" > "$INSTALLED_DIR/$agent_id/.agent.json"
 
   # Track installation
   local installed
   installed="$(_hub_get_installed)"
-  # Update installed.json with python3
   installed="$(printf '%s' "$installed" | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
-d['@$agent_name/$workflow_name'] = {'version': ${version:-1}, 'installed_at': '$(date -u +%Y-%m-%dT%H:%M:%SZ)'}
+d['$agent_id/$workflow_name'] = {'version': ${version:-1}, 'installed_at': '$(date -u +%Y-%m-%dT%H:%M:%SZ)', 'username': '$agent_name'}
 print(json.dumps(d))
 " 2>/dev/null || echo "$installed")"
   _hub_save_installed "$installed"
@@ -2573,9 +2586,10 @@ import sys, json
 d = json.load(sys.stdin)
 result = []
 for key, val in d.items():
-    parts = key.lstrip('@').split('/')
+    parts = key.split('/')
     if len(parts) == 2:
-        result.append({'agent': parts[0], 'slug': parts[1], 'version': val.get('version', 1)})
+        username = val.get('username', parts[0])
+        result.append({'agent': username, 'slug': parts[1], 'version': val.get('version', 1)})
 print(json.dumps(result))
 " 2>/dev/null || echo "[]")"
 
