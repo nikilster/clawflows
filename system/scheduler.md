@@ -13,9 +13,7 @@ Read `clawflows/clawflows.json` — it's a JSON array of enabled workflow entrie
 - `schedule` (empty string for on-demand)
 - `path` (relative to `clawflows/`)
 
-Skip entries where `schedule` is empty — they're on-demand only.
-
-For each scheduled workflow, read its `WORKFLOW.md` at `clawflows/<path>/WORKFLOW.md` to get the full schedule from frontmatter if needed.
+Skip entries where `schedule` is empty — they're on-demand only. The `schedule` field in `clawflows.json` is the source of truth (not the WORKFLOW.md frontmatter).
 
 ## 3. Parse Schedules
 
