@@ -2647,17 +2647,37 @@ import json, platform, os, subprocess
 env = {}
 try:
     if platform.system() == "Darwin":
-        chip = subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"], capture_output=True, text=True).stdout.strip()
-        if not chip:
-            chip = subprocess.run(["uname", "-m"], capture_output=True, text=True).stdout.strip()
-            if chip == "arm64": chip = "Apple Silicon"
-        env["cpu"] = chip
+        sp = subprocess.run(["system_profiler", "SPHardwareDataType", "SPStorageDataType"], capture_output=True, text=True).stdout
+        for line in sp.splitlines():
+            k, _, v = line.partition(":")
+            k, v = k.strip(), v.strip()
+            if k == "Model Name" and v: env["device"] = v
+            elif k == "Chip" and v: env["cpu"] = v
+            elif k == "Total Number of Cores" and v: env["cores"] = v
+            elif k == "Capacity" and v and "storage_gb" not in env:
+                try:
+                    b = int(v.split("(")[1].split()[0].replace(",",""))
+                    env["storage_gb"] = round(b / (1024**3))
+                except: pass
     else:
+        try:
+            with open("/sys/devices/virtual/dmi/id/product_name") as f:
+                name = f.read().strip()
+                if name and name != "System Product Name": env["device"] = name
+        except: pass
         with open("/proc/cpuinfo") as f:
+            cores = 0
             for line in f:
-                if line.startswith("model name"):
+                if line.startswith("model name") and "cpu" not in env:
                     env["cpu"] = line.split(":")[1].strip()
-                    break
+                if line.startswith("processor"): cores += 1
+            if cores: env["cores"] = str(cores)
+except: pass
+try:
+    if platform.system() != "Darwin":
+        import shutil
+        total, _, _ = shutil.disk_usage("/")
+        env["storage_gb"] = round(total / (1024**3))
 except: pass
 try:
     if platform.system() == "Darwin":
@@ -2679,8 +2699,14 @@ try:
         env["os"] = f"{platform.system()} {platform.release()}"
 except: pass
 try:
-    import datetime
-    env["timezone"] = datetime.datetime.now().astimezone().tzinfo.tzname(None) or ""
+    if platform.system() == "Darwin":
+        lnk = subprocess.run(["readlink", "/etc/localtime"], capture_output=True, text=True).stdout.strip()
+        parts = lnk.split("zoneinfo/")
+        if len(parts) > 1: env["timezone"] = parts[-1]
+    else:
+        with open("/etc/timezone") as f:
+            tz = f.read().strip()
+            if tz: env["timezone"] = tz
 except: pass
 try:
     v = subprocess.run(["openclaw", "--version"], capture_output=True, text=True).stdout.strip()
