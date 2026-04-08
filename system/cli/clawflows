@@ -2639,9 +2639,66 @@ print(v)
   local profile_json="{}"
   local oc_model
   oc_model="$(openclaw models status --json 2>/dev/null | python3 -c 'import sys,json; print(json.load(sys.stdin).get("resolvedDefault",""))' 2>/dev/null)" || true
-  if [ -n "$oc_model" ]; then
-    profile_json="{\"model\":\"$oc_model\"}"
-  fi
+
+  # Detect environment (hardware, OS, timezone, CLI version)
+  local env_json
+  env_json="$(python3 -c '
+import json, platform, os, subprocess
+env = {}
+try:
+    if platform.system() == "Darwin":
+        chip = subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"], capture_output=True, text=True).stdout.strip()
+        if not chip:
+            chip = subprocess.run(["uname", "-m"], capture_output=True, text=True).stdout.strip()
+            if chip == "arm64": chip = "Apple Silicon"
+        env["cpu"] = chip
+    else:
+        with open("/proc/cpuinfo") as f:
+            for line in f:
+                if line.startswith("model name"):
+                    env["cpu"] = line.split(":")[1].strip()
+                    break
+except: pass
+try:
+    if platform.system() == "Darwin":
+        mem = int(subprocess.run(["sysctl", "-n", "hw.memsize"], capture_output=True, text=True).stdout.strip())
+        env["ram_gb"] = round(mem / (1024**3))
+    else:
+        with open("/proc/meminfo") as f:
+            for line in f:
+                if line.startswith("MemTotal"):
+                    kb = int(line.split()[1])
+                    env["ram_gb"] = round(kb / (1024**2))
+                    break
+except: pass
+try:
+    if platform.system() == "Darwin":
+        ver = platform.mac_ver()[0]
+        env["os"] = f"macOS {ver}" if ver else "macOS"
+    else:
+        env["os"] = f"{platform.system()} {platform.release()}"
+except: pass
+try:
+    import datetime
+    env["timezone"] = datetime.datetime.now().astimezone().tzinfo.tzname(None) or ""
+except: pass
+try:
+    v = subprocess.run(["openclaw", "--version"], capture_output=True, text=True).stdout.strip()
+    if v: env["cli_version"] = v.split()[-1] if " " in v else v
+except: pass
+print(json.dumps(env))
+' 2>/dev/null)" || env_json="{}"
+
+  # Build profile JSON with model + environment
+  profile_json="$(python3 -c "
+import json
+p = {}
+model = '''$oc_model'''
+if model: p['model'] = model
+env = json.loads('''$env_json''')
+if env: p['environment'] = env
+print(json.dumps(p))
+" 2>/dev/null)" || profile_json="{}"
 
   # Read current clawflows.json to send to server
   local clawflows_json
