@@ -2643,8 +2643,8 @@ print(v)
   # Detect environment (hardware, OS, timezone, CLI version)
   local env_json
   env_json="$(python3 -c '
-import json, platform, os, subprocess
-env = {}
+import json, platform, subprocess
+env = {"platform": platform.system()}
 try:
     if platform.system() == "Darwin":
         sp = subprocess.run(["system_profiler", "SPHardwareDataType", "SPStorageDataType"], capture_output=True, text=True).stdout
@@ -2654,11 +2654,15 @@ try:
             if k == "Model Name" and v: env["device"] = v
             elif k == "Chip" and v: env["cpu"] = v
             elif k == "Total Number of Cores" and v: env["cores"] = v
-            elif k == "Capacity" and v and "storage_gb" not in env:
-                try:
-                    b = int(v.split("(")[1].split()[0].replace(",",""))
-                    env["storage_gb"] = round(b / (1024**3))
+            elif k == "Memory" and v: env["memory"] = v
+            elif k == "Capacity" and v and "storage_bytes" not in env:
+                try: env["storage_bytes"] = int(v.split("(")[1].split()[0].replace(",",""))
                 except: pass
+        ver = platform.mac_ver()[0]
+        if ver: env["os_version"] = ver
+        lnk = subprocess.run(["readlink", "/etc/localtime"], capture_output=True, text=True).stdout.strip()
+        parts = lnk.split("zoneinfo/")
+        if len(parts) > 1: env["timezone"] = parts[-1]
     else:
         try:
             with open("/sys/devices/virtual/dmi/id/product_name") as f:
@@ -2672,45 +2676,27 @@ try:
                     env["cpu"] = line.split(":")[1].strip()
                 if line.startswith("processor"): cores += 1
             if cores: env["cores"] = str(cores)
-except: pass
-try:
-    if platform.system() != "Darwin":
-        import shutil
-        total, _, _ = shutil.disk_usage("/")
-        env["storage_gb"] = round(total / (1024**3))
-except: pass
-try:
-    if platform.system() == "Darwin":
-        mem = int(subprocess.run(["sysctl", "-n", "hw.memsize"], capture_output=True, text=True).stdout.strip())
-        env["ram_gb"] = round(mem / (1024**3))
-    else:
-        with open("/proc/meminfo") as f:
-            for line in f:
-                if line.startswith("MemTotal"):
-                    kb = int(line.split()[1])
-                    env["ram_gb"] = round(kb / (1024**2))
-                    break
-except: pass
-try:
-    if platform.system() == "Darwin":
-        ver = platform.mac_ver()[0]
-        env["os"] = f"macOS {ver}" if ver else "macOS"
-    else:
-        env["os"] = f"{platform.system()} {platform.release()}"
-except: pass
-try:
-    if platform.system() == "Darwin":
-        lnk = subprocess.run(["readlink", "/etc/localtime"], capture_output=True, text=True).stdout.strip()
-        parts = lnk.split("zoneinfo/")
-        if len(parts) > 1: env["timezone"] = parts[-1]
-    else:
-        with open("/etc/timezone") as f:
-            tz = f.read().strip()
-            if tz: env["timezone"] = tz
+        try:
+            with open("/proc/meminfo") as f:
+                for line in f:
+                    if line.startswith("MemTotal"):
+                        env["memory_kb"] = int(line.split()[1])
+                        break
+        except: pass
+        try:
+            import shutil
+            env["storage_bytes"] = shutil.disk_usage("/").total
+        except: pass
+        env["os_version"] = platform.release()
+        try:
+            with open("/etc/timezone") as f:
+                tz = f.read().strip()
+                if tz: env["timezone"] = tz
+        except: pass
 except: pass
 try:
     v = subprocess.run(["openclaw", "--version"], capture_output=True, text=True).stdout.strip()
-    if v: env["cli_version"] = v.split()[-1] if " " in v else v
+    if v: env["openclaw_version"] = v.split()[-1] if " " in v else v
 except: pass
 print(json.dumps(env))
 ' 2>/dev/null)" || env_json="{}"
