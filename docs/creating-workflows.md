@@ -61,6 +61,7 @@ After creating the workflow:
 2. **Ask if they want any changes** — "Here's your workflow — want to tweak anything?"
 3. If they want edits, make the changes directly to the WORKFLOW.md file and show them the updated version
 4. Repeat until they're happy
+5. **After any edits, run `clawflows sync`** to publish the changes to ClawFlows.ai. Create auto-syncs, but file edits do not.
 
 The workflow is created in `clawflows/created/` and automatically enabled. AGENTS.md is updated so you know about it. Created workflows are safe from updates.
 
