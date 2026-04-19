@@ -4,5 +4,6 @@ clawflows/installed/*
 !clawflows/installed/.gitkeep
 clawflows/clawflows.json
 system/runs/
+system/runs.jsonl
 system/.dashboard-state
 .vercel

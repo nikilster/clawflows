@@ -1722,22 +1722,30 @@ cmd_run() {
 
   [ -f "$wf_file" ] || die "WORKFLOW.md not found at $wf_file"
 
-  # Set up run log file
-  local today time_now run_dir run_file
-  today="$(date +%Y-%m-%d)"
-  time_now="$(date +%H:%M)"
-  run_dir="$CLAWFLOWS_DIR/system/runs/$today/$name"
-  run_file="$run_dir/$time_now"
-  mkdir -p "$run_dir"
+  local runs_file="$CLAWFLOWS_DIR/system/runs.jsonl"
 
   # Run via openclaw if available
-  local oc start_time end_time duration
+  local oc
   oc="$(_find_openclaw)"
-  start_time="$(date +%s)"
   if [ -n "$oc" ]; then
     echo "Running $name — check your chat with your agent for results."
     echo ""
-    "$oc" agent --agent main -m "Run the $name workflow by following $wf_file" | tee "$run_file"
+    "$oc" agent --agent main -m "Run the $name workflow by following $wf_file.
+
+After running, append one JSONL line to $runs_file describing what you did:
+
+cat >> $runs_file << 'EOF'
+{\"ts\":\"<ISO timestamp now>\",\"workflow\":\"$name\",\"trigger\":\"manual\",\"output\":\"<what you actually did>\"}
+EOF
+
+The 'output' field must describe the concrete user-facing actions you took — name channels, targets, and what was sent/changed. Examples:
+- \"Sent morning briefing to Telegram 345754343: 65F NYC, 3 meetings, top goal ship clawflows v2.\"
+- \"Archived 8 junk emails, flagged 2 urgent (from Stripe, from landlord). No replies sent.\"
+- \"Turned off Lutron main lights, set Hue living room to dim red, started Sonos meditation playlist at volume 3.\"
+- \"No nudge sent. User on 'fix dave' timer, exercised today, aligned with goals.\"
+- \"Blocked: browser tool unavailable. No DoorDash check performed.\"
+
+Do NOT write vague summaries like 'ran workflow'. Say what was sent, what was changed, and to whom."
   else
     echo ""
     echo "  ✓ Workflow ready: $name"
@@ -1746,12 +1754,7 @@ cmd_run() {
     echo ""
     echo "    Run $name"
     echo ""
-    touch "$run_file"
   fi
-  end_time="$(date +%s)"
-  duration="$((end_time - start_time))"
-  # Store duration in a companion file
-  echo "$duration" > "${run_file}.duration"
 }
 
 # ── Logs ──────────────────────────────────────────────────────────────────────
@@ -1760,98 +1763,54 @@ cmd_logs() {
   local filter_name="${1:-}"
   [ -n "$filter_name" ] && validate_workflow_name "$filter_name"
   local filter_date="${2:-}"
-  local runs_dir="$CLAWFLOWS_DIR/system/runs"
+  local runs_file="$CLAWFLOWS_DIR/system/runs.jsonl"
 
-  if [ ! -d "$runs_dir" ]; then
+  if [ ! -f "$runs_file" ]; then
     echo "No runs yet."
     return
   fi
 
-  local count=0
-  local max=20
+  python3 - "$runs_file" "$filter_name" "$filter_date" <<'PY'
+import json, sys
+runs_file, filter_name, filter_date = sys.argv[1:4]
+max_entries = 20
 
-  # Walk date directories newest-first
-  for date_dir in $(ls -1r "$runs_dir" 2>/dev/null); do
-    case "$date_dir" in
-      [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;;
-      *) continue ;;
-    esac
-    [ -d "$runs_dir/$date_dir" ] || continue
+with open(runs_file) as f:
+    lines = [l for l in f.readlines() if l.strip()]
 
-    # Filter by date if specified
-    if [ -n "$filter_date" ] && [ "$date_dir" != "$filter_date" ]; then
-      continue
-    fi
-
-    # Collect time entries for this date, then sort newest-first
-    local entries=""
-    for wf_dir in "$runs_dir/$date_dir"/*/; do
-      [ -d "$wf_dir" ] || continue
-      local wf_name
-      wf_name="$(basename "$wf_dir")"
-
-      # Filter by name if specified
-      if [ -n "$filter_name" ] && [ "$wf_name" != "$filter_name" ]; then
+# Newest first
+entries = []
+for line in reversed(lines):
+    try:
+        e = json.loads(line)
+    except json.JSONDecodeError:
         continue
-      fi
+    if filter_name and e.get("workflow") != filter_name:
+        continue
+    if filter_date and not e.get("ts", "").startswith(filter_date):
+        continue
+    entries.append(e)
+    if len(entries) >= max_entries:
+        break
 
-      for time_file in "$wf_dir"*; do
-        [ -e "$time_file" ] || continue
-        local time_name
-        time_name="$(basename "$time_file")"
-        entries="${entries}${time_name}|${wf_name}|${time_file}
-"
-      done
-    done
+if not entries:
+    if filter_name:
+        print(f"No runs found for '{filter_name}'.")
+    else:
+        print("No runs yet.")
+    sys.exit(0)
 
-    # Sort entries by time descending
-    local sorted
-    sorted="$(echo "$entries" | sort -r)"
-
-    local IFS_OLD="$IFS"
-    IFS=$'\n'
-    for entry in $sorted; do
-      [ -n "$entry" ] || continue
-      local t_name w_name t_file
-      t_name="$(echo "$entry" | cut -d'|' -f1)"
-      w_name="$(echo "$entry" | cut -d'|' -f2)"
-      t_file="$(echo "$entry" | cut -d'|' -f3)"
-
-      # Look up emoji
-      local emoji=""
-      local source_dir
-      source_dir="$(_find_workflow "$w_name" 2>/dev/null || true)"
-      if [ -n "$source_dir" ] && [ -f "$source_dir/WORKFLOW.md" ]; then
-        emoji="$(get_field "$source_dir/WORKFLOW.md" emoji)"
-      fi
-      emoji="${emoji:-📄}"
-
-      echo "─── $date_dir $t_name $emoji $w_name ───"
-
-      # Show log content or placeholder
-      if [ -s "$t_file" ]; then
-        cat "$t_file"
-      else
-        echo "(no log recorded)"
-      fi
-      echo ""
-
-      count=$((count + 1))
-      if [ "$count" -ge "$max" ]; then
-        IFS="$IFS_OLD"
-        return
-      fi
-    done
-    IFS="$IFS_OLD"
-  done
-
-  if [ "$count" -eq 0 ]; then
-    if [ -n "$filter_name" ]; then
-      echo "No runs found for '$filter_name'."
-    else
-      echo "No runs yet."
-    fi
-  fi
+for e in entries:
+    ts = e.get("ts", "?")
+    wf = e.get("workflow", "?")
+    trigger = e.get("trigger", "?")
+    slot = e.get("scheduled_time", "")
+    slot_str = f" @ {slot}" if slot else ""
+    print(f"─── {ts} {wf} [{trigger}{slot_str}] ───")
+    out = e.get("output", "").strip()
+    print(out if out else "(no output recorded)")
+    print()
+PY
 }
 
 # ── Dashboard ────────────────────────────────────────────────────────────────

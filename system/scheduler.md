@@ -26,19 +26,18 @@ Use your judgment to interpret the schedule. A workflow is "due" if the current 
 
 ## 4. Check Run History
 
-For each due workflow, check if it already ran at this scheduled time today.
+All runs are logged to a single file: `system/runs.jsonl`. Each line is a JSON object with this shape:
 
-Run files are stored in `system/runs/`, keyed by the **scheduled time** (not the current time):
-```
-system/runs/YYYY-MM-DD/workflow-name/HH:MM
-```
-
-**Important:** `HH:MM` is always the **scheduled time** the workflow was due, not the time the scheduler checked. For example, if `send-morning-briefing` is scheduled for 7:00 AM and the scheduler checks at 6:50 AM on Feb 10, 2026, the run file is still:
-```
-system/runs/2026-02-10/send-morning-briefing/07:00
+```json
+{"ts":"2026-04-19T09:00:12-04:00","workflow":"send-morning-briefing","trigger":"scheduled","scheduled_time":"09:00","output":"..."}
 ```
 
-If the run file exists for this scheduled time slot, skip it.
+For each due workflow, check if a line exists in `runs.jsonl` for today with the same `workflow` and `scheduled_time`. If so, skip it (already ran this slot).
+
+Quick check:
+```bash
+grep "\"workflow\":\"<name>\".*\"scheduled_time\":\"<HH:MM>\"" system/runs.jsonl | grep "\"ts\":\"<YYYY-MM-DD>"
+```
 
 ## 5. Run Due Workflows
 
@@ -46,19 +45,25 @@ For each workflow that is due and hasn't run:
 
 1. Read the full `WORKFLOW.md`
 2. Execute it according to its instructions
-3. Create the run file using the **scheduled time** (not the current time) and write a brief summary (2-5 lines) of what happened:
-   ```bash
-   mkdir -p system/runs/YYYY-MM-DD/workflow-name
-   cat > system/runs/YYYY-MM-DD/workflow-name/HH:MM << 'EOF'
-   Brief summary of what the workflow did.
-   Include key results, numbers, or actions taken.
-   EOF
-   ```
+3. Append one JSONL line to `system/runs.jsonl` describing what you did:
 
-   Good log examples:
-   - "Sent briefing: 65F, 3 meetings today, 2 priority tasks"
-   - "Triaged 12 emails: archived 8 junk, flagged 2 urgent, 2 need reply"
-   - "No calendar conflicts in next 48 hours. Next meeting: standup at 9am"
+```bash
+cat >> system/runs.jsonl << 'EOF'
+{"ts":"<ISO timestamp now>","workflow":"<name>","trigger":"scheduled","scheduled_time":"<HH:MM>","output":"<what you actually did>"}
+EOF
+```
+
+**The `output` field must describe the concrete user-facing actions you took.** Name the channel, target, and what was sent/changed. Examples:
+
+- `"Sent morning briefing to Telegram 345754343: 65F NYC, 3 meetings, top goal ship clawflows v2."`
+- `"Archived 8 junk emails, flagged 2 urgent (from Stripe, from landlord). No replies sent."`
+- `"Turned off Lutron main lights, set Hue living room to dim red, started Sonos meditation playlist at volume 3."`
+- `"No nudge sent. User on 'fix dave' timer, exercised today, aligned with goals."`
+- `"Blocked: browser tool unavailable in this scheduler session. No DoorDash check performed."`
+
+Do NOT write vague summaries like "ran workflow" or "checked email". Say what was sent, what was changed, and to whom.
+
+**Important:** `scheduled_time` is the time slot the workflow was due (e.g. `"07:00"`), not the current time. If `send-morning-briefing` runs at 6:50 AM for its 7:00 AM slot, `scheduled_time` is `"07:00"`.
 
 ## 6. Report
 
@@ -72,3 +77,4 @@ If nothing was due, respond with `HEARTBEAT_OK`.
 - Enabled workflows are listed in `clawflows/clawflows.json`
 - Only run workflows with a non-empty `schedule` field
 - Respect the run history — don't double-run
+- **Default Telegram target:** When a workflow says to send a Telegram message without specifying a recipient, use chat ID `345754343` (Nikil's personal chat).
