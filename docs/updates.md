@@ -1,5 +1,9 @@
 # Updates
 
+## Sun, Apr 19
+
+- 🔧 Fixed `--from-json` truncating the description at the first escaped quote. The old parser used `[^"]*` which halted at any `"` character, including an escaped `\"`, so a description like `Log food with "Breakfast" and "Dinner"` got chopped to `Log food with ` and the rest silently vanished. `create --from-json` now hands JSON off to `jq` when it is installed, so escaped quotes, backslashes, and every other JSON escape survive intact. The grep/sed fallback still runs on systems without jq, with the limitation documented inline. Banana pieces reunited 🍌
+
 ## Sat, Mar 28
 
 - 🟢 **Fixed CI tests for `submit`** — The `submit` command was `die`-ing when it couldn't detect a GitHub remote or username, even though the workflow was already copied successfully. Now those PR automation failures are warnings, not fatal errors — because the banana is already in the basket, we just couldn't mail it yet! CI goes green for the first time in 5 commits 🍌

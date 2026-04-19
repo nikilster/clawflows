@@ -177,3 +177,40 @@ Do something useful
     # Should have title case heading
     assert_output --partial "# My Cool Workflow"
 }
+
+# Regression for issue #15: descriptions containing escaped quotes used to
+# get truncated at the first `\"` because the JSON regex used `[^"]*`, which
+# stops at any `"` character including an escaped one. With jq installed the
+# full description should survive.
+@test "create --from-json: preserves escaped quotes in description" {
+    if ! command -v jq >/dev/null 2>&1; then
+        skip "jq not installed; the bash regex fallback cannot handle escaped quotes"
+    fi
+
+    local json='{"name":"quoted-desc","summary":"summary","description":"Log food with \"Breakfast\" and \"Dinner\" slots at \"08:30:00\""}'
+
+    run_clawflows create --from-json "$json"
+
+    assert_success
+    run cat "${CUSTOM_DIR}/quoted-desc/WORKFLOW.md"
+    # The full description, with all three quoted fragments, must be present.
+    assert_output --partial 'Log food with "Breakfast" and "Dinner" slots at "08:30:00"'
+    # And the pre-fix truncation marker (description ending at the first `\"`)
+    # must not appear -- if it did, the body would end with "Log food with "
+    # and drop everything after it.
+    refute_output --partial $'Log food with \n'
+}
+
+@test "create --from-json: preserves backslashes inside description" {
+    if ! command -v jq >/dev/null 2>&1; then
+        skip "jq not installed; the bash regex fallback cannot handle escaped characters"
+    fi
+
+    local json='{"name":"backslash-desc","summary":"summary","description":"Path uses \\\\ as separator"}'
+
+    run_clawflows create --from-json "$json"
+
+    assert_success
+    run cat "${CUSTOM_DIR}/backslash-desc/WORKFLOW.md"
+    assert_output --partial 'Path uses \\ as separator'
+}
