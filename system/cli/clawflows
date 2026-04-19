@@ -149,8 +149,7 @@ cmd_help() {
   printf "\n${H}🌐 ClawFlows.ai${R}\n"
   printf "  ${CMD}login ${M}<token>${R}        Sign in to ClawFlows.ai\n"
   printf "  ${CMD}sync${R}                  Push your workflows & pull installs\n"
-  printf "  ${CMD}explore ${M}[topic]${R}      Browse recommended workflows\n"
-  printf "  ${CMD}search ${M}<query>${R}       Search workflows by name\n"
+  printf "  ${CMD}explore ${M}[topic]${R}      Browse workflows (optional topic filter)\n"
   printf "  ${CMD}install ${M}<url>${R}        Install a workflow from ClawFlows.ai\n"
   printf "  ${CMD}whoami${R}                Check your login status\n"
   printf "  ${CMD}logout${R}                Sign out\n"
@@ -2260,21 +2259,6 @@ cmd_web_explore() {
   fi
 }
 
-cmd_web_search() {
-  local query="${1:-}"
-  [ -n "$query" ] || die "usage: clawflows search <query>"
-
-  echo ""
-  echo "  Search: $query"
-  echo "  ──────────────────────"
-  local encoded_query
-  encoded_query="$(printf '%s' "$query" | python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.stdin.read().strip()))' 2>/dev/null)"
-  local response
-  response="$(curl -sf "$HUB_URL/api/explore?q=$encoded_query")" || die "Could not reach ClawFlows.ai"
-  _print_explore_results "$response"
-  echo ""
-}
-
 cmd_web_install() {
   local ref="$1"
   local agent_name workflow_name
@@ -2421,7 +2405,6 @@ cmd_web() {
     sync)     cmd_web_sync ;;
     install)  [ -n "${1:-}" ] || die "usage: clawflows install <url>"; cmd_web_install "$1" ;;
     explore)  cmd_web_explore "${1:-}" ;;
-    search)   cmd_web_search "${1:-}" ;;
     update)   cmd_web_update ;;
     *)
       echo "ClawFlows Web commands:"
@@ -2429,7 +2412,6 @@ cmd_web() {
       echo "  clawflows login [token]                    Sign in to ClawFlows.ai"
       echo "  clawflows sync                             Push your workflows to ClawFlows.ai"
       echo "  clawflows explore [query]                  Browse workflows (default: recommended)"
-      echo "  clawflows search <query>                   Search workflows by name"
       echo "  clawflows install <url>                    Install a workflow from ClawFlows.ai"
       echo "  clawflows whoami                           Check your login status"
       echo "  clawflows logout                           Sign out"
@@ -2461,7 +2443,6 @@ case "$1" in
   sync-agent) cmd_sync ;;
   doctor)    cmd_doctor ;;
   explore)   cmd_web_explore "${2:-}" ;;
-  search)    [ $# -ge 2 ] || die "usage: clawflows search <query>"; cmd_web_search "$2" ;;
   install)   [ $# -ge 2 ] || die "usage: clawflows install <url>"; cmd_web_install "$2" ;;
   login)     cmd_web_login "${2:-}" ;;
   logout)    cmd_web_logout ;;

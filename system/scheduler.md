@@ -77,4 +77,4 @@ If nothing was due, respond with `HEARTBEAT_OK`.
 - Enabled workflows are listed in `clawflows/clawflows.json`
 - Only run workflows with a non-empty `schedule` field
 - Respect the run history — don't double-run
-- **Default Telegram target:** When a workflow says to send a Telegram message without specifying a recipient, use chat ID `345754343` (Nikil's personal chat).
+- **Sending Telegram messages:** Use the `sessions_send` tool with `sessionKey: "agent:main:telegram:345754343"` (Nikil's personal chat). Do NOT pass `label: "Telegram"` — it will fail because there is no session with that label. Example: `sessions_send(sessionKey="agent:main:telegram:345754343", message="...")`.
