@@ -131,24 +131,6 @@ teardown() {
     assert_output --partial "workflow-3"
 }
 
-@test "lifecycle: submit workflow to community" {
-    # Create custom workflow
-    create_custom_workflow "shareable-workflow" "🎁" "A workflow to share"
-
-    # Validate it first
-    run_clawflows validate shareable-workflow
-    assert_success
-
-    # Submit it
-    run_clawflows submit shareable-workflow
-    assert_success
-    assert_output --partial "community-submissions"
-
-    # Verify it was copied
-    assert [ -d "${CLAWFLOWS_DIR}/community-submissions/shareable-workflow" ]
-    assert [ -f "${CLAWFLOWS_DIR}/community-submissions/shareable-workflow/WORKFLOW.md" ]
-}
-
 # ============================================================================
 # Error Recovery Tests
 # ============================================================================

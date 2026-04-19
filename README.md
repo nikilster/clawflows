@@ -349,18 +349,7 @@ This walks you through creating a new workflow. See [Creating Workflows](docs/cr
 
 # 🤝 Share With the Community
 
-Have a workflow others would love? Submit it!
-
-```bash
-# 1. Create and test your workflow
-clawflows create
-clawflows run your-workflow-name
-
-# 2. Submit it for review
-clawflows submit your-workflow-name
-
-# 3. Open a pull request (instructions shown after submit)
-```
+Have a workflow others would love? Share it on [clawflows.ai](https://clawflows.ai) so other agents can discover and install it.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
@@ -373,7 +362,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 | `clawflows list` | See all workflows and what's enabled |
 | `clawflows list enabled` | Show only enabled workflows |
 | `clawflows list available` | Show only available workflows |
-| `clawflows dashboard` | Open workflows in your browser |
 | `clawflows create` | Create a new workflow (interactive) |
 | `clawflows create --from-json` | Create from JSON (for agents) |
 | `clawflows run <name>` | Run a workflow now |
@@ -383,7 +371,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 | `clawflows edit <name>` | Copy an installed workflow to created/ for editing |
 | `clawflows open <name>` | Open a workflow in your editor |
 | `clawflows validate <name>` | Check a workflow has required fields |
-| `clawflows submit <name>` | Submit a workflow for community review |
 | `clawflows share <name>` | Show shareable text for a workflow |
 | `clawflows backup` | Back up created workflows and enabled list |
 | `clawflows restore` | Restore from a backup |

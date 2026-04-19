@@ -136,53 +136,6 @@ teardown() {
 }
 
 # ============================================================================
-# Runs JSON (dashboard)
-# ============================================================================
-
-@test "logs: --runs-json includes log field" {
-    create_test_run "test-wf" "2026-03-08" "07:00" "Sent briefing"
-
-    # Copy dashboard files for the dashboard command
-    mkdir -p "${CLAWFLOWS_DIR}/system/dashboard"
-    cp "${TESTS_DIR}/../system/dashboard/template.html" "${CLAWFLOWS_DIR}/system/dashboard/template.html" 2>/dev/null || true
-    cp "${TESTS_DIR}/../system/dashboard/server.js" "${CLAWFLOWS_DIR}/system/dashboard/server.js" 2>/dev/null || true
-    export DASHBOARD_NO_OPEN=1
-
-    run_clawflows dashboard --runs-json
-
-    assert_success
-    echo "$output" | grep -q '"log":"Sent briefing"'
-}
-
-@test "logs: --runs-json empty file has empty log" {
-    create_test_run "test-wf" "2026-03-08" "07:00"
-
-    mkdir -p "${CLAWFLOWS_DIR}/system/dashboard"
-    cp "${TESTS_DIR}/../system/dashboard/template.html" "${CLAWFLOWS_DIR}/system/dashboard/template.html" 2>/dev/null || true
-    cp "${TESTS_DIR}/../system/dashboard/server.js" "${CLAWFLOWS_DIR}/system/dashboard/server.js" 2>/dev/null || true
-    export DASHBOARD_NO_OPEN=1
-
-    run_clawflows dashboard --runs-json
-
-    assert_success
-    echo "$output" | grep -q '"log":""'
-}
-
-@test "logs: --runs-json escapes quotes in log content" {
-    create_test_run "test-wf" "2026-03-08" "07:00" 'Said "hello" to user'
-
-    mkdir -p "${CLAWFLOWS_DIR}/system/dashboard"
-    cp "${TESTS_DIR}/../system/dashboard/template.html" "${CLAWFLOWS_DIR}/system/dashboard/template.html" 2>/dev/null || true
-    cp "${TESTS_DIR}/../system/dashboard/server.js" "${CLAWFLOWS_DIR}/system/dashboard/server.js" 2>/dev/null || true
-    export DASHBOARD_NO_OPEN=1
-
-    run_clawflows dashboard --runs-json
-
-    assert_success
-    echo "$output" | grep -q '\\"hello\\"'
-}
-
-# ============================================================================
 # cmd_run() captures output
 # ============================================================================
 

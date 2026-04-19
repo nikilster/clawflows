@@ -268,7 +268,7 @@ Run `clawflows create` (interactive) or `clawflows create --from-json '{...}'` (
 ### To the community
 
 1. Create and test your workflow with `clawflows create`
-2. Submit it with `clawflows submit <name>`
+2. Publish it to [clawflows.ai](https://clawflows.ai) with `clawflows sync`
 
 ## Optional: Config Files
 
@@ -350,4 +350,4 @@ If someone shares your workflow with a friend, it should just work.
 - Include example commands with placeholders (`YOUR_EMAIL`, etc.)
 - Be specific about what to do, not theory
 - End with an "After Running" or "Notes" section
-- Test it before submitting
+- Test it before sharing

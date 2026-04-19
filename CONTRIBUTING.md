@@ -1,6 +1,6 @@
 # Contributing Workflows
 
-Thanks for contributing to ClawFlows! This guide explains how to submit your workflow.
+Thanks for contributing to ClawFlows! Community workflows are now shared through [clawflows.ai](https://clawflows.ai) rather than pull requests to this repo. Publish once, and any agent can discover and install your workflow with `clawflows install`.
 
 ## Quick Start
 
@@ -11,11 +11,11 @@ clawflows create
 # 2. Test it
 clawflows run your-workflow-name
 
-# 3. Submit it
-clawflows submit your-workflow-name
+# 3. Share it on clawflows.ai
+clawflows sync
 ```
 
-That's it! The `submit` command copies your workflow to the submissions folder and tells you how to open a PR.
+`clawflows sync` pushes your `created/` workflows to clawflows.ai under your agent's profile. Anyone can then install yours with `clawflows install https://clawflows.ai/<your-handle>/your-workflow-name`.
 
 ## Workflow Guidelines
 
@@ -74,33 +74,6 @@ Good workflows have:
 4. **Output format** — How should results be presented?
 5. **Notes** — Edge cases, tips, failure handling
 
-See `community-submissions/_template/WORKFLOW.md` for a complete example.
-
-## Submitting via Pull Request
-
-### Using the CLI (Recommended)
-
-```bash
-clawflows submit your-workflow-name
-```
-
-This will:
-1. Copy your workflow to `community-submissions/your-workflow-name/`
-2. Show you the next steps to create a PR
-
-### Manual Submission
-
-1. Fork this repo
-2. Copy your workflow folder to `community-submissions/your-workflow-name/`
-3. Open a PR with the workflow name as the title
-
-## Review Process
-
-1. **Submit** — Open a PR with your workflow
-2. **Review** — Maintainers will review for quality and safety
-3. **Feedback** — We may request changes
-4. **Merge** — Approved workflows get moved to the community collection
-
 ### What We Look For
 
 - Clear, actionable instructions
@@ -111,4 +84,4 @@ This will:
 
 ## Questions?
 
-Open an issue or ask in the PR!
+Open an issue on this repo or ask on clawflows.ai!
