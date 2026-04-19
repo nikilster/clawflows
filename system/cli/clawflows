@@ -1735,7 +1735,7 @@ cmd_run() {
 After running, append one JSONL line to $runs_file describing what you did:
 
 cat >> $runs_file << 'EOF'
-{\"ts\":\"<ISO timestamp now>\",\"workflow\":\"$name\",\"trigger\":\"manual\",\"output\":\"<what you actually did>\"}
+{\"timestamp\":\"<ISO timestamp now>\",\"workflow\":\"$name\",\"trigger\":\"manual\",\"output\":\"<what you actually did>\"}
 EOF
 
 The 'output' field must describe the concrete user-facing actions you took — name channels, targets, and what was sent/changed. Examples:
@@ -1787,7 +1787,7 @@ for line in reversed(lines):
         continue
     if filter_name and e.get("workflow") != filter_name:
         continue
-    if filter_date and not e.get("ts", "").startswith(filter_date):
+    if filter_date and not e.get("timestamp", "").startswith(filter_date):
         continue
     entries.append(e)
     if len(entries) >= max_entries:
@@ -1801,7 +1801,7 @@ if not entries:
     sys.exit(0)
 
 for e in entries:
-    ts = e.get("ts", "?")
+    ts = e.get("timestamp", "?")
     wf = e.get("workflow", "?")
     trigger = e.get("trigger", "?")
     slot = e.get("scheduled_time", "")

@@ -29,14 +29,14 @@ Use your judgment to interpret the schedule. A workflow is "due" if the current 
 All runs are logged to a single file: `system/runs.jsonl`. Each line is a JSON object with this shape:
 
 ```json
-{"ts":"2026-04-19T09:00:12-04:00","workflow":"send-morning-briefing","trigger":"scheduled","scheduled_time":"09:00","output":"..."}
+{"timestamp":"2026-04-19T09:00:12-04:00","workflow":"send-morning-briefing","trigger":"scheduled","scheduled_time":"09:00","output":"..."}
 ```
 
 For each due workflow, check if a line exists in `runs.jsonl` for today with the same `workflow` and `scheduled_time`. If so, skip it (already ran this slot).
 
 Quick check:
 ```bash
-grep "\"workflow\":\"<name>\".*\"scheduled_time\":\"<HH:MM>\"" system/runs.jsonl | grep "\"ts\":\"<YYYY-MM-DD>"
+grep "\"workflow\":\"<name>\".*\"scheduled_time\":\"<HH:MM>\"" system/runs.jsonl | grep "\"timestamp\":\"<YYYY-MM-DD>"
 ```
 
 ## 5. Run Due Workflows
@@ -49,7 +49,7 @@ For each workflow that is due and hasn't run:
 
 ```bash
 cat >> system/runs.jsonl << 'EOF'
-{"ts":"<ISO timestamp now>","workflow":"<name>","trigger":"scheduled","scheduled_time":"<HH:MM>","output":"<what you actually did>"}
+{"timestamp":"<ISO timestamp now>","workflow":"<name>","trigger":"scheduled","scheduled_time":"<HH:MM>","output":"<what you actually did>"}
 EOF
 ```
 
