@@ -1108,6 +1108,12 @@ cmd_backup() {
     cp "$CLAWFLOWS_JSON" "$tmpdir/clawflows.json"
   fi
 
+  # Copy runs.jsonl (run history)
+  local runs_file="$CLAWFLOWS_DIR/system/runs.jsonl"
+  if [ -f "$runs_file" ]; then
+    cp "$runs_file" "$tmpdir/runs.jsonl"
+  fi
+
   # Save enabled workflows list (backward compat)
   : > "$tmpdir/enabled-workflows.txt"
   python3 -c "
@@ -1120,6 +1126,7 @@ for entry in data:
   # Create archive
   local archive_items="created enabled-workflows.txt"
   [ -f "$tmpdir/clawflows.json" ] && archive_items="$archive_items clawflows.json"
+  [ -f "$tmpdir/runs.jsonl" ] && archive_items="$archive_items runs.jsonl"
   tar -czf "$BACKUP_DIR/$filename" -C "$tmpdir" $archive_items
   rm -rf "$tmpdir"
 
@@ -1319,6 +1326,14 @@ print(len(current))
     done < "$tmpdir/enabled-workflows.txt"
   fi
 
+  # Restore runs.jsonl if present (only if no existing runs file, to avoid clobbering newer history)
+  local runs_restored=0
+  local runs_file="$CLAWFLOWS_DIR/system/runs.jsonl"
+  if [ -f "$tmpdir/runs.jsonl" ] && [ ! -f "$runs_file" ]; then
+    cp "$tmpdir/runs.jsonl" "$runs_file"
+    runs_restored=1
+  fi
+
   rm -rf "$tmpdir"
 
   # Sync AGENTS.md if we enabled anything
@@ -1330,6 +1345,7 @@ print(len(current))
   echo "  Restored $restored workflow(s)"
   [ $skipped -gt 0 ] && echo "  Skipped $skipped (already exist)"
   echo "  Enabled $enabled workflow(s)"
+  [ $runs_restored -gt 0 ] && echo "  Restored runs.jsonl history"
   echo ""
 }
 
