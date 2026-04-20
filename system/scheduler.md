@@ -8,7 +8,7 @@ Note the current time and date.
 
 ## 2. Read Enabled Workflows
 
-Read `clawflows/clawflows.json` — it's a JSON array of enabled workflow entries. Each entry has:
+Read `clawflows/clawflows/clawflows.json` — it's a JSON array of enabled workflow entries. Each entry has:
 - `name`
 - `schedule` (empty string for on-demand)
 - `path` (relative to `clawflows/`)
@@ -74,7 +74,6 @@ If nothing was due, respond with `HEARTBEAT_OK`.
 ## Notes
 
 - This runs every 15 minutes via cron
-- Enabled workflows are listed in `clawflows/clawflows.json`
+- Enabled workflows are listed in `clawflows/clawflows/clawflows.json`
 - Only run workflows with a non-empty `schedule` field
 - Respect the run history — don't double-run
-- **Sending Telegram messages:** Use the `sessions_send` tool with `sessionKey: "agent:main:telegram:345754343"` (Nikil's personal chat). Do NOT pass `label: "Telegram"` — it will fail because there is no session with that label. Example: `sessions_send(sessionKey="agent:main:telegram:345754343", message="...")`.
