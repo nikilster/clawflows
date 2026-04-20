@@ -11,7 +11,7 @@ Note the current time and date.
 Read `clawflows/clawflows/clawflows.json` — it's a JSON array of enabled workflow entries. Each entry has:
 - `name`
 - `schedule` (empty string for on-demand)
-- `path` (relative to `clawflows/`)
+- `path` (relative to `clawflows/clawflows/`)
 
 Skip entries where `schedule` is empty — they're on-demand only. The `schedule` field in `clawflows.json` is the source of truth (not the WORKFLOW.md frontmatter).
 
