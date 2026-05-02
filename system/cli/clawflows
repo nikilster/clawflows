@@ -105,6 +105,23 @@ _json_is_enabled() {
   [ -n "$result" ]
 }
 
+_json_increment_run_count() {
+  local name="$1"
+  local tmpfile
+  tmpfile="$(mktemp)"
+  python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for entry in data:
+    if entry.get('name') == '$name':
+        entry['run_count'] = entry.get('run_count', 0) + 1
+        break
+with open('$tmpfile', 'w') as f:
+    json.dump(data, f, indent=2)
+" <<< "$(_json_read)" 2>/dev/null
+  mv "$tmpfile" "$CLAWFLOWS_JSON"
+}
+
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
 cmd_help() {
@@ -991,7 +1008,7 @@ _build_block() {
   lines+=("")
   lines+=("### Running a Workflow")
   lines+=("1. Match the user's request to a workflow in the Enabled Workflows list below")
-  lines+=("2. Run \`clawflows run <name>\` — it auto-enables, reads WORKFLOW.md, logs the run, and invokes you to follow the steps")
+  lines+=("2. Run \`clawflows run <name> --input \"<the user's message>\"\` — always pass the user's original message text as --input so the workflow has context")
   lines+=("")
   lines+=("### After Enabling or Creating a Workflow")
   lines+=("Read the WORKFLOW.md and check what services it references (\`**X skill**\` patterns like \`**email skill**\`, \`**calendar skill**\`). For each:")
@@ -1038,7 +1055,7 @@ for entry in data:
 
   if $has_enabled; then
     lines+=("### Enabled Workflows")
-    lines+=("When the user asks for any of these, run \`clawflows run <name>\`.")
+    lines+=("When the user asks for any of these, run \`clawflows run <name> --input \"<user's message>\"\`.")
     for entry in "${entries[@]}"; do
       lines+=("$entry")
     done
@@ -1550,6 +1567,14 @@ cmd_import() {
 
 cmd_run() {
   local name="$1"
+  shift
+  local input=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --input) shift; input="$1"; shift ;;
+      *) shift ;;
+    esac
+  done
   validate_workflow_name "$name"
   local wf_file
 
@@ -1579,7 +1604,15 @@ cmd_run() {
   if [ -n "$oc" ]; then
     echo "Running $name — check your chat with your agent for results."
     echo ""
-    "$oc" agent --agent main -m "Run the $name workflow by following $wf_file.
+    local input_block=""
+    if [ -n "$input" ]; then
+      input_block="
+
+The user's message that triggered this workflow:
+$input
+"
+    fi
+    "$oc" agent --agent main -m "Run the $name workflow by following $wf_file.$input_block
 
 After running, append one JSONL line to $runs_file describing what you did:
 
@@ -1595,6 +1628,8 @@ The 'output' field must describe the concrete user-facing actions you took — n
 - \"Blocked: browser tool unavailable. No DoorDash check performed.\"
 
 Do NOT write vague summaries like 'ran workflow'. Say what was sent, what was changed, and to whom."
+    # Increment run count in registry
+    _json_increment_run_count "$name"
   else
     echo ""
     echo "  ✓ Workflow ready: $name"
@@ -1604,6 +1639,12 @@ Do NOT write vague summaries like 'ran workflow'. Say what was sent, what was ch
     echo "    Run $name"
     echo ""
   fi
+}
+
+cmd_count_run() {
+  local name="$1"
+  validate_workflow_name "$name"
+  _json_increment_run_count "$name"
 }
 
 # ── Logs ──────────────────────────────────────────────────────────────────────
@@ -2020,30 +2061,18 @@ print(v)
   fi
   workflows_json="$workflows_json]"
 
-  # Build run counts from system/runs/
-  local run_counts="{}"
-  if [ -d "$CLAWFLOWS_DIR/system/runs" ]; then
-    local counts_json="{"
-    local count_first=true
-    for date_dir in "$CLAWFLOWS_DIR/system/runs"/*/; do
-      [ -d "$date_dir" ] || continue
-      for wf_dir in "$date_dir"*/; do
-        [ -d "$wf_dir" ] || continue
-        local wf_name
-        wf_name="$(basename "$wf_dir")"
-        local run_count
-        run_count="$(find "$CLAWFLOWS_DIR/system/runs" -path "*/$wf_name/*" -type f 2>/dev/null | wc -l | tr -d ' ')"
-        if [ "$count_first" = true ]; then
-          count_first=false
-        else
-          counts_json="$counts_json,"
-        fi
-        counts_json="$counts_json\"$wf_name\":$run_count"
-      done
-    done
-    counts_json="$counts_json}"
-    run_counts="$counts_json"
-  fi
+  # Build run counts from clawflows.json registry
+  local run_counts
+  run_counts="$(python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+counts = {}
+for entry in data:
+    rc = entry.get('run_count', 0)
+    if rc > 0:
+        counts[entry['name']] = rc
+print(json.dumps(counts))
+" <<< "$(_json_read)" 2>/dev/null)" || run_counts="{}"
 
   # Detect model from OpenClaw
   local profile_json="{}"
@@ -2205,6 +2234,9 @@ for u in d.get('updates', []):
 if writes: print(f'  ✅ {writes} clawflow(s) installed/updated from web')
 if deletes: print(f'  🗑  {deletes} clawflow(s) removed')
 " 2>/dev/null
+
+  # Rebuild AGENTS.md so the agent knows about any new/removed workflows
+  cmd_sync
 
   echo ""
 }
@@ -2428,7 +2460,8 @@ cmd_web() {
 case "$1" in
   list)      cmd_list "${2:-all}" ;;
   create)    cmd_create "${2:-}" "${3:-}" ;;
-  run)       [ $# -ge 2 ] || die "usage: clawflows run <name>"; cmd_run "$2" ;;
+  run)       [ $# -ge 2 ] || die "usage: clawflows run <name> [--input <text>]"; shift; cmd_run "$@" ;;
+  count-run) [ $# -ge 2 ] || die "usage: clawflows count-run <name>"; cmd_count_run "$2" ;;
   logs)      cmd_logs "${2:-}" "${3:-}" ;;
   enable)    [ $# -ge 2 ] || die "usage: clawflows enable <name>"; cmd_enable "$2" ;;
   disable)   [ $# -ge 2 ] || die "usage: clawflows disable <name>"; cmd_disable "$2" ;;
