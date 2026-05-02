@@ -16,7 +16,7 @@ teardown() {
 # ============================================================================
 
 @test "sync-agent: creates block in AGENTS.md" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
     touch "$AGENTS_MD"
 
@@ -30,7 +30,7 @@ teardown() {
 }
 
 @test "sync-agent: replaces existing block" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
     setup_agents_md
 
@@ -39,7 +39,7 @@ teardown() {
     assert_success
 
     # Create another workflow and enable
-    create_installed_workflow "second-workflow" "✌️" "Second workflow"
+    create_community_workflow "second-workflow" "✌️" "Second workflow"
     enable_workflow "second-workflow"
 
     # Second sync should replace, not duplicate
@@ -61,8 +61,8 @@ teardown() {
 }
 
 @test "sync-agent: includes all enabled workflows" {
-    create_installed_workflow "workflow-a" "🅰️" "Workflow A"
-    create_installed_workflow "workflow-b" "🅱️" "Workflow B"
+    create_community_workflow "workflow-a" "🅰️" "Workflow A"
+    create_community_workflow "workflow-b" "🅱️" "Workflow B"
     enable_workflow "workflow-a"
     enable_workflow "workflow-b"
     touch "$AGENTS_MD"
@@ -76,7 +76,7 @@ teardown() {
 }
 
 @test "sync-agent: shows schedule info" {
-    create_installed_workflow "scheduled-wf" "⏰" "Scheduled workflow" "9am"
+    create_community_workflow "scheduled-wf" "⏰" "Scheduled workflow" "9am"
     enable_workflow "scheduled-wf"
     touch "$AGENTS_MD"
 
@@ -88,13 +88,13 @@ teardown() {
 }
 
 @test "sync-agent: with broken registry entries skips them" {
-    create_installed_workflow "valid-workflow" "✅" "Valid workflow"
+    create_community_workflow "valid-workflow" "✅" "Valid workflow"
     enable_workflow "valid-workflow"
     # Add a broken entry
     python3 -c "
 import json
 data = json.load(open('${REGISTRY_FILE}'))
-data.append({'name': 'broken-workflow', 'schedule': '', 'path': 'installed/999/broken-workflow', 'source': 'installed', 'created_at': '2026-01-01T00:00:00Z'})
+data.append({'name': 'broken-workflow', 'schedule': '', 'path': 'community/999/broken-workflow', 'source': 'community', 'created_at': '2026-01-01T00:00:00Z'})
 json.dump(data, open('${REGISTRY_FILE}', 'w'), indent=2)
 "
     touch "$AGENTS_MD"
@@ -134,7 +134,7 @@ json.dump(data, open('${REGISTRY_FILE}', 'w'), indent=2)
 }
 
 @test "sync-agent: includes workflow file paths" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
     touch "$AGENTS_MD"
 

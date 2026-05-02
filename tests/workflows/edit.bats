@@ -15,8 +15,8 @@ teardown() {
 # Basic Edit Tests
 # ============================================================================
 
-@test "edit: copies installed workflow to created" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+@test "edit: copies community workflow to created" {
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
 
     run_clawflows edit test-workflow
 
@@ -37,10 +37,10 @@ teardown() {
 }
 
 @test "edit: updates registry to created version if enabled" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
 
-    # Verify it points to installed first
+    # Verify it points to community first
     local before_path
     before_path="$(python3 -c "
 import json
@@ -51,7 +51,7 @@ for e in data:
         print(e.get('path', ''))
         break
 ")"
-    [[ "$before_path" == *"installed"* ]]
+    [[ "$before_path" == *"community"* ]]
 
     run_clawflows edit test-workflow
 
@@ -91,7 +91,7 @@ for e in data:
 # ============================================================================
 
 @test "edit: preserves workflow content when copying" {
-    create_installed_workflow "test-workflow" "🧪" "Original description"
+    create_community_workflow "test-workflow" "🧪" "Original description"
 
     run_clawflows edit test-workflow
 

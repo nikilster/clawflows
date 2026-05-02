@@ -19,8 +19,8 @@ _oc_workspace="${_oc_workspace:-$HOME/.openclaw/workspace}"
 AGENTS_MD="${AGENTS_MD:-$_oc_workspace/AGENTS.md}"
 BACKUP_DIR="${BACKUP_DIR:-$_oc_workspace/clawflows-backups}"
 CREATED_DIR="$CLAWFLOWS_DIR/clawflows/created"
-INSTALLED_DIR="$CLAWFLOWS_DIR/clawflows/installed"
-CLAWFLOWS_JSON="$CLAWFLOWS_DIR/clawflows/clawflows.json"
+COMMUNITY_DIR="$CLAWFLOWS_DIR/clawflows/community"
+CLAWFLOWS_JSON="$CLAWFLOWS_DIR/clawflows/registry.json"
 BIN_TARGET="$HOME/.local/bin/clawflows"
 
 START_MARKER="<!-- clawflows:start -->"
@@ -45,7 +45,7 @@ _find_openclaw() {
   done
 }
 
-# ── clawflows.json Helpers ─────────────────────────────────────────────────
+# ── registry.json Helpers ──────────────────────────────────────────────────
 
 _json_read() {
   if [ -f "$CLAWFLOWS_JSON" ]; then
@@ -176,11 +176,11 @@ cmd_help() {
   printf "\n${H}How it works${R}\n"
   printf "  Clawflows live in ~/.openclaw/workspace/clawflows/clawflows/\n"
   printf "  ${M}•${R} created/              — your own clawflows\n"
-  printf "  ${M}•${R} installed/            — installed from clawflows.ai\n"
-  printf "  ${M}•${R} clawflows.json        — tracks enabled workflows\n"
-  printf "\n  When you enable a workflow, it's added to clawflows.json.\n"
-  printf "  Disable removes it from clawflows.json — your files are never deleted.\n"
-  printf "\n  Use 'edit' to copy an installed workflow to created/ so you\n"
+  printf "  ${M}•${R} community/            — installed from clawflows.ai\n"
+  printf "  ${M}•${R} registry.json         — tracks enabled workflows\n"
+  printf "\n  When you enable a workflow, it's added to registry.json.\n"
+  printf "  Disable removes it from registry.json — your files are never deleted.\n"
+  printf "\n  Use 'edit' to copy a community workflow to created/ so you\n"
   printf "  can modify it. Use 'open' to open any workflow in your editor.\n"
 
   printf "\n${H}Get started${R}\n"
@@ -227,13 +227,13 @@ get_field() {
   ' "$file"
 }
 
-# Find workflow source: created/ takes priority, then installed/
+# Find workflow source: created/ takes priority, then community/
 _find_workflow() {
   local name="$1"
   if [ -d "$CREATED_DIR/$name" ]; then
     echo "$CREATED_DIR/$name"
-  elif [ -d "$INSTALLED_DIR" ]; then
-    for agent_dir in "$INSTALLED_DIR"/*/; do
+  elif [ -d "$COMMUNITY_DIR" ]; then
+    for agent_dir in "$COMMUNITY_DIR"/*/; do
       [ -d "$agent_dir$name" ] && echo "$agent_dir$name" && return
     done
   fi
@@ -527,7 +527,7 @@ cmd_list() {
   local available_lines=()
   local seen_names=""
 
-  # Read clawflows.json to know which workflows are enabled
+  # Read registry.json to know which workflows are enabled
   local clawflows_data
   clawflows_data="$(_json_read)"
 
@@ -546,13 +546,13 @@ cmd_list() {
     fi
   done
 
-  # Collect installed workflows (from web)
-  if [ -d "$INSTALLED_DIR" ]; then
-    for agent_dir in "$INSTALLED_DIR"/*/; do
+  # Collect community workflows (from web)
+  if [ -d "$COMMUNITY_DIR" ]; then
+    for agent_dir in "$COMMUNITY_DIR"/*/; do
       [ -d "$agent_dir" ] || continue
       local agent_id_name
       agent_id_name="$(basename "$agent_dir")"
-      # Get username from clawflows.json if enabled, otherwise from .agent.json
+      # Get username from registry.json if enabled, otherwise from .agent.json
       for dir in "$agent_dir"*/; do
         [ -d "$dir" ] || continue
         name="$(basename "$dir")"
@@ -563,7 +563,7 @@ cmd_list() {
         found=true
 
         local agent_label
-        # Try to get username from clawflows.json
+        # Try to get username from registry.json
         local reg_username
         reg_username="$(python3 -c "
 import sys, json
@@ -657,12 +657,12 @@ cmd_enable() {
       source="created"
       rel_path="created/$name"
       ;;
-    "$INSTALLED_DIR"/*)
-      source="installed"
-      # Extract agent_id from path: installed/<agent_id>/<slug>
+    "$COMMUNITY_DIR"/*)
+      source="community"
+      # Extract agent_id from path: community/<agent_id>/<slug>
       local agent_id_dir
-      agent_id_dir="$(echo "$source_dir" | sed "s|$INSTALLED_DIR/||" | cut -d/ -f1)"
-      rel_path="installed/$agent_id_dir/$name"
+      agent_id_dir="$(echo "$source_dir" | sed "s|$COMMUNITY_DIR/||" | cut -d/ -f1)"
+      rel_path="community/$agent_id_dir/$name"
       ;;
     *)
       source="created"
@@ -670,22 +670,22 @@ cmd_enable() {
       ;;
   esac
 
-  # Build clawflows.json entry
+  # Build registry.json entry
   local entry_json
   local now
   now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-  if [ "$source" = "installed" ]; then
+  if [ "$source" = "community" ]; then
     local agent_id username version
     agent_id="$agent_id_dir"
     # Read username from .agent.json if it exists
     username=""
-    if [ -f "$INSTALLED_DIR/$agent_id/.agent.json" ]; then
-      username="$(python3 -c 'import sys,json; print(json.load(sys.stdin).get("username",""))' < "$INSTALLED_DIR/$agent_id/.agent.json" 2>/dev/null)"
+    if [ -f "$COMMUNITY_DIR/$agent_id/.agent.json" ]; then
+      username="$(python3 -c 'import sys,json; print(json.load(sys.stdin).get("username",""))' < "$COMMUNITY_DIR/$agent_id/.agent.json" 2>/dev/null)"
     fi
-    # Read version from clawflows.json or default to 1
+    # Read version from registry.json or default to 1
     version="1"
-    entry_json="{\"name\":\"$name\",\"schedule\":\"${schedule:-}\",\"path\":\"$rel_path\",\"source\":\"installed\",\"agent_id\":\"$agent_id\",\"username\":\"${username:-}\",\"version\":$version,\"created_at\":\"$now\"}"
+    entry_json="{\"name\":\"$name\",\"schedule\":\"${schedule:-}\",\"path\":\"$rel_path\",\"source\":\"community\",\"agent_id\":\"$agent_id\",\"username\":\"${username:-}\",\"version\":$version,\"created_at\":\"$now\"}"
   else
     entry_json="{\"name\":\"$name\",\"schedule\":\"${schedule:-}\",\"path\":\"$rel_path\",\"source\":\"created\",\"created_at\":\"$now\"}"
   fi
@@ -755,14 +755,14 @@ cmd_edit() {
     cp -r "$source_dir" "$CREATED_DIR/$name"
     echo "copied to created/: $name"
 
-    # If it was enabled, update clawflows.json entry to point to created/
+    # If it was enabled, update registry.json entry to point to created/
     if _json_is_enabled "$name"; then
       local existing schedule now
       existing="$(_json_find "$name")"
       schedule="$(printf '%s' "$existing" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("schedule",""))' 2>/dev/null)"
       now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
       _json_add "{\"name\":\"$name\",\"schedule\":\"${schedule:-}\",\"path\":\"created/$name\",\"source\":\"created\",\"created_at\":\"$now\"}"
-      echo "updated clawflows.json to created version"
+      echo "updated registry.json to created version"
     fi
 
     echo ""
@@ -907,7 +907,7 @@ cmd_doctor() {
 
   local issues=0
 
-  # Check each clawflows.json entry points to a real WORKFLOW.md
+  # Check each registry.json entry points to a real WORKFLOW.md
   python3 -c "
 import sys, json
 data = json.load(sys.stdin)
@@ -922,7 +922,7 @@ for entry in data:
     fi
   done
 
-  # Check for duplicate names in clawflows.json
+  # Check for duplicate names in registry.json
   local dupes
   dupes="$(python3 -c "
 import sys, json
@@ -936,12 +936,12 @@ for n in names:
 " <<< "$(_json_read)" 2>/dev/null)"
   if [ -n "$dupes" ]; then
     echo "$dupes" | while read -r dupe; do
-      echo "  ⚠️  Duplicate clawflows.json entry: $dupe"
+      echo "  ⚠️  Duplicate registry.json entry: $dupe"
       issues=$((issues + 1))
     done
   fi
 
-  # Check for orphaned workflows (on disk but not in clawflows.json)
+  # Check for orphaned workflows (on disk but not in registry.json)
   local orphaned=0
   for dir in "$CREATED_DIR"/*/; do
     [ -d "$dir" ] || continue
@@ -953,7 +953,7 @@ for n in names:
 
   if [ "$issues" -eq 0 ]; then
     echo "  ✅ All workflows look healthy!"
-    echo "     All clawflows.json entries point to valid files."
+    echo "     All registry.json entries point to valid files."
   else
     echo ""
     echo "  Found $issues issue(s)."
@@ -1005,7 +1005,7 @@ _build_block() {
   lines+=("- \`clawflows list\` — all workflows + paths")
   lines+=("- \`$CLAWFLOWS_DIR/system/AGENT.md\` — agent reference guide (install, sync, sharing)")
   lines+=("- \`$CLAWFLOWS_DIR/docs/creating-workflows.md\` — read this BEFORE creating a workflow")
-  lines+=("- **Never edit \`clawflows.json\` directly** — always use CLI commands")
+  lines+=("- **Never edit \`registry.json\` directly** — always use CLI commands")
   lines+=("- **Visibility defaults to public** — do not change visibility on the user's behalf. Only set a non-public visibility if the user explicitly asks for it.")
   lines+=("")
   lines+=("If the user asks for something that sounds like a workflow but no match fits, run \`clawflows list\` for a broader search, then offer to create one.")
@@ -1014,7 +1014,7 @@ _build_block() {
   local has_enabled=false
   local entries=()
 
-  # Read enabled workflows from clawflows.json
+  # Read enabled workflows from registry.json
   local clawflows_entries
   clawflows_entries="$(python3 -c "
 import sys, json
@@ -1099,9 +1099,9 @@ cmd_backup() {
     mkdir -p "$tmpdir/created"
   fi
 
-  # Copy clawflows.json
+  # Copy registry.json
   if [ -f "$CLAWFLOWS_JSON" ]; then
-    cp "$CLAWFLOWS_JSON" "$tmpdir/clawflows.json"
+    cp "$CLAWFLOWS_JSON" "$tmpdir/registry.json"
   fi
 
   # Copy runs.jsonl (run history)
@@ -1121,7 +1121,7 @@ for entry in data:
 
   # Create archive
   local archive_items="created enabled-workflows.txt"
-  [ -f "$tmpdir/clawflows.json" ] && archive_items="$archive_items clawflows.json"
+  [ -f "$tmpdir/registry.json" ] && archive_items="$archive_items registry.json"
   [ -f "$tmpdir/runs.jsonl" ] && archive_items="$archive_items runs.jsonl"
   tar -czf "$BACKUP_DIR/$filename" -C "$tmpdir" $archive_items
   rm -rf "$tmpdir"
@@ -1254,11 +1254,11 @@ cmd_restore() {
 
   # Re-enable workflows
   local enabled=0
-  if [ -f "$tmpdir/clawflows.json" ]; then
-    # Merge clawflows.json from backup
+  if [ -f "$tmpdir/registry.json" ]; then
+    # Merge registry.json from backup
     python3 -c "
 import sys, json
-backup = json.load(open('$tmpdir/clawflows.json'))
+backup = json.load(open('$tmpdir/registry.json'))
 try:
     current = json.load(open('$CLAWFLOWS_JSON'))
 except:
@@ -1275,7 +1275,7 @@ with open('$CLAWFLOWS_JSON', 'w') as f:
     done
     enabled="$(python3 -c "
 import json
-backup = json.load(open('$tmpdir/clawflows.json'))
+backup = json.load(open('$tmpdir/registry.json'))
 try:
     current = json.load(open('$CLAWFLOWS_JSON'))
 except:
@@ -1553,7 +1553,7 @@ cmd_run() {
   validate_workflow_name "$name"
   local wf_file
 
-  # Find the workflow - check clawflows.json first, then disk
+  # Find the workflow - check registry.json first, then disk
   if _json_is_enabled "$name"; then
     local reg_path
     reg_path="$(python3 -c "import sys,json; [print(e['path']) for e in json.load(sys.stdin) if e.get('name')=='$name']" <<< "$(_json_read)" 2>/dev/null)"
@@ -1818,34 +1818,34 @@ cmd_web_sync() {
     fi
     # Move installed/ up if it exists under available/
     if [ -d "$old_available_dir/installed" ]; then
-      mkdir -p "$INSTALLED_DIR"
+      mkdir -p "$COMMUNITY_DIR"
       for agent_dir in "$old_available_dir/installed"/*/; do
         [ -d "$agent_dir" ] || continue
         local agent_id
         agent_id="$(basename "$agent_dir")"
-        if [ ! -d "$INSTALLED_DIR/$agent_id" ]; then
-          mv "$agent_dir" "$INSTALLED_DIR/$agent_id"
+        if [ ! -d "$COMMUNITY_DIR/$agent_id" ]; then
+          mv "$agent_dir" "$COMMUNITY_DIR/$agent_id"
         else
           for wf in "$agent_dir"*/; do
             [ -d "$wf" ] || continue
             local wf_name
             wf_name="$(basename "$wf")"
-            if [ ! -d "$INSTALLED_DIR/$agent_id/$wf_name" ]; then
-              mv "$wf" "$INSTALLED_DIR/$agent_id/$wf_name"
+            if [ ! -d "$COMMUNITY_DIR/$agent_id/$wf_name" ]; then
+              mv "$wf" "$COMMUNITY_DIR/$agent_id/$wf_name"
             fi
           done
         fi
       done
       rm -rf "$old_available_dir/installed"
     fi
-    # Move community/ to installed if still present
+    # Move community/ to community/ dir if still present under available/
     if [ -d "$old_available_dir/community" ]; then
       local community_dir="$old_available_dir/community"
       for wf in "$community_dir"/*/; do
         [ -d "$wf" ] || continue
         local wf_name
         wf_name="$(basename "$wf")"
-        local dest="$INSTALLED_DIR/1/$wf_name"
+        local dest="$COMMUNITY_DIR/1/$wf_name"
         if [ ! -d "$dest" ]; then
           mkdir -p "$dest"
           cp -r "$wf"* "$dest/" 2>/dev/null || true
@@ -1858,10 +1858,10 @@ cmd_web_sync() {
     echo "  Migrated available/ directory structure"
   fi
 
-  # One-time migration: build clawflows.json from symlinks in enabled/
+  # One-time migration: build registry.json from symlinks in enabled/
   local old_enabled_dir="$CLAWFLOWS_DIR/clawflows/enabled"
   if [ -d "$old_enabled_dir" ] && [ ! -f "$CLAWFLOWS_JSON" ]; then
-    echo "  Building clawflows.json from enabled symlinks..."
+    echo "  Building registry.json from enabled symlinks..."
     local now
     now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     local migration_entries="["
@@ -1890,15 +1890,15 @@ cmd_web_sync() {
           schedule="$(get_field "$CREATED_DIR/$wf_name/WORKFLOW.md" schedule)"
         fi
       else
-        # Check installed/
-        local found_installed=false
-        if [ -d "$INSTALLED_DIR" ]; then
-          for agent_dir in "$INSTALLED_DIR"/*/; do
+        # Check community/
+        local found_community=false
+        if [ -d "$COMMUNITY_DIR" ]; then
+          for agent_dir in "$COMMUNITY_DIR"/*/; do
             [ -d "$agent_dir" ] || continue
             if [ -d "$agent_dir$wf_name" ]; then
               agent_id="$(basename "$agent_dir")"
-              source="installed"
-              rel_path="installed/$agent_id/$wf_name"
+              source="community"
+              rel_path="community/$agent_id/$wf_name"
               if [ -f "$agent_dir$wf_name/WORKFLOW.md" ]; then
                 schedule="$(get_field "$agent_dir$wf_name/WORKFLOW.md" schedule)"
               fi
@@ -1917,12 +1917,12 @@ v = d.get('$agent_id/$wf_name', {}).get('version', 1)
 print(v)
 " < "$HOME/.clawflows/installed.json" 2>/dev/null || echo "1")"
               fi
-              found_installed=true
+              found_community=true
               break
             fi
           done
         fi
-        if ! $found_installed; then
+        if ! $found_community; then
           # Workflow on disk somewhere but can't determine — skip
           continue
         fi
@@ -1934,8 +1934,8 @@ print(v)
         migration_entries="$migration_entries,"
       fi
 
-      if [ "$source" = "installed" ]; then
-        migration_entries="$migration_entries{\"name\":\"$wf_name\",\"schedule\":\"${schedule:-}\",\"path\":\"$rel_path\",\"source\":\"installed\",\"agent_id\":\"$agent_id\",\"username\":\"${username:-}\",\"version\":${version:-1},\"created_at\":\"$now\"}"
+      if [ "$source" = "community" ]; then
+        migration_entries="$migration_entries{\"name\":\"$wf_name\",\"schedule\":\"${schedule:-}\",\"path\":\"$rel_path\",\"source\":\"community\",\"agent_id\":\"$agent_id\",\"username\":\"${username:-}\",\"version\":${version:-1},\"created_at\":\"$now\"}"
       else
         migration_entries="$migration_entries{\"name\":\"$wf_name\",\"schedule\":\"${schedule:-}\",\"path\":\"$rel_path\",\"source\":\"created\",\"created_at\":\"$now\"}"
       fi
@@ -1943,7 +1943,7 @@ print(v)
 
     migration_entries="$migration_entries]"
     printf '%s' "$migration_entries" | python3 -c "import sys,json; json.dump(json.load(sys.stdin), open('$CLAWFLOWS_JSON','w'), indent=2)" 2>/dev/null
-    echo "  Built clawflows.json with $(python3 -c "import json; print(len(json.load(open('$CLAWFLOWS_JSON'))))" 2>/dev/null || echo "0") entries"
+    echo "  Built registry.json with $(python3 -c "import json; print(len(json.load(open('$CLAWFLOWS_JSON'))))" 2>/dev/null || echo "0") entries"
   fi
 
   # Clean up old enabled/ directory and .agent.json files
@@ -1957,7 +1957,7 @@ print(v)
     rm -f "$HOME/.clawflows/installed.json"
   fi
 
-  # Ensure clawflows.json exists
+  # Ensure registry.json exists
   if [ ! -f "$CLAWFLOWS_JSON" ]; then
     echo "[]" > "$CLAWFLOWS_JSON"
   fi
@@ -2122,7 +2122,7 @@ if env: p['environment'] = env
 print(json.dumps(p))
 " 2>/dev/null)" || profile_json="{}"
 
-  # Read current clawflows.json to send to server
+  # Read current registry.json to send to server
   local clawflows_json
   clawflows_json="$(_json_read)"
 
@@ -2163,7 +2163,7 @@ print(json.dumps(caps))
   [ "${created:-0}" -gt 0 ] && echo "     $created new" || true
   [ "${updated:-0}" -gt 0 ] && echo "     $updated updated" || true
 
-  # Save server clawflows.json (only if server returned one)
+  # Save server registry.json (only if server returned one)
   printf '%s' "$response" | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
@@ -2309,8 +2309,8 @@ cmd_web_install() {
   [ -n "$content" ] || die "Workflow has no content. The author hasn't synced it yet."
   [ -n "$agent_id" ] || die "Server did not return agent_id. Try updating your CLI."
 
-  # Save to installed/{agent_id}/{slug}/
-  local target_dir="$INSTALLED_DIR/$agent_id/$workflow_name"
+  # Save to community/{agent_id}/{slug}/
+  local target_dir="$COMMUNITY_DIR/$agent_id/$workflow_name"
   mkdir -p "$target_dir"
   printf '%s' "$content" > "$target_dir/WORKFLOW.md"
 
@@ -2318,10 +2318,10 @@ cmd_web_install() {
   local inst_schedule
   inst_schedule="$(get_field "$target_dir/WORKFLOW.md" schedule)"
 
-  # Track in clawflows.json
+  # Track in registry.json
   local now
   now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  _json_add "{\"name\":\"$workflow_name\",\"schedule\":\"${inst_schedule:-}\",\"path\":\"installed/$agent_id/$workflow_name\",\"source\":\"installed\",\"agent_id\":\"$agent_id\",\"username\":\"$agent_name\",\"version\":${version:-1},\"created_at\":\"$now\"}"
+  _json_add "{\"name\":\"$workflow_name\",\"schedule\":\"${inst_schedule:-}\",\"path\":\"community/$agent_id/$workflow_name\",\"source\":\"community\",\"agent_id\":\"$agent_id\",\"username\":\"$agent_name\",\"version\":${version:-1},\"created_at\":\"$now\"}"
 
   echo ""
   echo "  ✅ Installed $name (@$agent_name/$workflow_name) v${version:-1}"
@@ -2335,14 +2335,14 @@ cmd_web_update() {
   local token
   token="$(_hub_get_token)"
 
-  # Build installed list from clawflows.json
-  local installed_json
-  installed_json="$(python3 -c "
+  # Build community list from registry.json
+  local community_json
+  community_json="$(python3 -c "
 import sys, json
 data = json.load(sys.stdin)
 result = []
 for entry in data:
-    if entry.get('source') == 'installed':
+    if entry.get('source') == 'community':
         agent_id = entry.get('agent_id', '')
         result.append({
             'agent_id': agent_id,
@@ -2352,8 +2352,8 @@ for entry in data:
 print(json.dumps(result))
 " <<< "$(_json_read)" 2>/dev/null || echo "[]")"
 
-  if [ "$installed_json" = "[]" ]; then
-    echo "No web-installed workflows to check."
+  if [ "$community_json" = "[]" ]; then
+    echo "No community workflows to check for updates."
     return
   fi
 
@@ -2362,7 +2362,7 @@ print(json.dumps(result))
   local response
   response="$(curl -sf -X POST "$HUB_URL/api/updates" \
     -H "Content-Type: application/json" \
-    -d "{\"installed\":$installed_json}")" || die "Could not reach ClawFlows.ai"
+    -d "{\"installed\":$community_json}")" || die "Could not reach ClawFlows.ai"
 
   local updates
   updates="$(printf '%s' "$response" | python3 -c "

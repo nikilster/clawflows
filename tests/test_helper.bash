@@ -27,17 +27,17 @@ setup_test_environment() {
 
     # These would normally be set by the CLI, but we set them for testing
     export CREATED_DIR="${CLAWFLOWS_DIR}/clawflows/created"
-    export INSTALLED_DIR="${CLAWFLOWS_DIR}/clawflows/installed"
-    export CLAWFLOWS_JSON="${CLAWFLOWS_DIR}/clawflows/clawflows.json"
+    export COMMUNITY_DIR="${CLAWFLOWS_DIR}/clawflows/community"
+    export CLAWFLOWS_JSON="${CLAWFLOWS_DIR}/clawflows/registry.json"
 
     # Create directory structure
     mkdir -p "$CREATED_DIR"
-    mkdir -p "$INSTALLED_DIR"
+    mkdir -p "$COMMUNITY_DIR"
     mkdir -p "$BACKUP_DIR"
     mkdir -p "${CLAWFLOWS_DIR}/system/cli"
     mkdir -p "${CLAWFLOWS_DIR}/community-submissions"
 
-    # Initialize empty clawflows.json
+    # Initialize empty registry.json
     echo '[]' > "$CLAWFLOWS_JSON"
 
     # Create a modified CLI that uses our test paths
@@ -71,7 +71,7 @@ CLAWFLOWS_DIR="${CLAWFLOWS_DIR}"
 AGENTS_MD="${AGENTS_MD}"
 BACKUP_DIR="${BACKUP_DIR}"
 CREATED_DIR="${CREATED_DIR}"
-INSTALLED_DIR="${INSTALLED_DIR}"
+COMMUNITY_DIR="${COMMUNITY_DIR}"
 CLAWFLOWS_JSON="${CLAWFLOWS_JSON}"
 SUBMISSIONS_DIR="${CLAWFLOWS_DIR}/community-submissions"
 BIN_TARGET="\$HOME/.local/bin/clawflows"
@@ -108,8 +108,7 @@ create_workflow() {
 
     local target_dir
     if [[ "$location" == "community" ]]; then
-        # Legacy support: community goes to installed/1/
-        target_dir="${INSTALLED_DIR}/1/${name}"
+        target_dir="${COMMUNITY_DIR}/1/${name}"
     elif [[ "$location" == "created" ]]; then
         target_dir="${CREATED_DIR}/${name}"
     else
@@ -152,14 +151,9 @@ This is a test workflow for ${name}.
     printf '%s\n' "$content" > "${target_dir}/WORKFLOW.md"
 }
 
-# create_community_workflow is a convenience wrapper (DEPRECATED — use create_installed_workflow)
+# create_community_workflow creates a workflow in community/<username>/<name>/
+# Usage: create_community_workflow <name> [emoji] [description] [schedule] [author] [username]
 create_community_workflow() {
-    create_workflow "community" "$@"
-}
-
-# create_installed_workflow creates a workflow in installed/<username>/<name>/
-# Usage: create_installed_workflow <name> [emoji] [description] [schedule] [author] [username]
-create_installed_workflow() {
     local name="$1"
     local emoji="${2:-}"
     local description="${3:-A test workflow}"
@@ -167,7 +161,7 @@ create_installed_workflow() {
     local author="${5:-}"
     local username="${6:-testuser}"
 
-    local target_dir="${INSTALLED_DIR}/${username}/${name}"
+    local target_dir="${COMMUNITY_DIR}/${username}/${name}"
     mkdir -p "$target_dir"
 
     # Build YAML frontmatter
@@ -208,7 +202,7 @@ create_custom_workflow() {
     create_workflow "created" "$@"
 }
 
-# enable_workflow adds an entry to clawflows.json
+# enable_workflow adds an entry to registry.json
 enable_workflow() {
     local name="$1"
     local source_dir=""
@@ -223,13 +217,13 @@ enable_workflow() {
         source="created"
         rel_path="created/${name}"
     else
-        # Search installed/*/<name>
-        for agent_dir in "${INSTALLED_DIR}"/*/; do
+        # Search community/*/<name>
+        for agent_dir in "${COMMUNITY_DIR}"/*/; do
             if [[ -d "${agent_dir}${name}" ]]; then
                 source_dir="${agent_dir}${name}"
                 agent_id="$(basename "$agent_dir")"
-                source="installed"
-                rel_path="installed/${agent_id}/${name}"
+                source="community"
+                rel_path="community/${agent_id}/${name}"
                 break
             fi
         done
@@ -259,13 +253,13 @@ enable_workflow() {
     now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
     local entry
-    if [[ "$source" == "installed" ]]; then
-        entry="{\"name\":\"${name}\",\"schedule\":\"${schedule:-}\",\"path\":\"${rel_path}\",\"source\":\"installed\",\"agent_id\":\"${agent_id}\",\"username\":\"${username:-}\",\"version\":1,\"created_at\":\"${now}\"}"
+    if [[ "$source" == "community" ]]; then
+        entry="{\"name\":\"${name}\",\"schedule\":\"${schedule:-}\",\"path\":\"${rel_path}\",\"source\":\"community\",\"agent_id\":\"${agent_id}\",\"username\":\"${username:-}\",\"version\":1,\"created_at\":\"${now}\"}"
     else
         entry="{\"name\":\"${name}\",\"schedule\":\"${schedule:-}\",\"path\":\"${rel_path}\",\"source\":\"created\",\"created_at\":\"${now}\"}"
     fi
 
-    # Add to clawflows.json using python3
+    # Add to registry.json using python3
     python3 -c "
 import json
 entry = json.loads('${entry}')
@@ -323,7 +317,7 @@ assert_workflow_exists() {
 
     local dir
     case "$location" in
-        community) dir="${INSTALLED_DIR}/1/${name}" ;;
+        community) dir="${COMMUNITY_DIR}/1/${name}" ;;
         created) dir="${CREATED_DIR}/${name}" ;;
         *) fail "Invalid location: $location" ;;
     esac
@@ -339,7 +333,7 @@ assert_workflow_not_exists() {
 
     local dir
     case "$location" in
-        community) dir="${INSTALLED_DIR}/1/${name}" ;;
+        community) dir="${COMMUNITY_DIR}/1/${name}" ;;
         created) dir="${CREATED_DIR}/${name}" ;;
         *) fail "Invalid location: $location" ;;
     esac
@@ -347,7 +341,7 @@ assert_workflow_not_exists() {
     [[ ! -e "$dir" ]] || fail "Expected workflow to not exist: $dir"
 }
 
-# assert_workflow_enabled checks that a workflow is in clawflows.json
+# assert_workflow_enabled checks that a workflow is in registry.json
 assert_workflow_enabled() {
     local name="$1"
     local result
@@ -360,10 +354,10 @@ for e in data:
         print('found')
         break
 " 2>/dev/null)"
-    [[ "$result" == "found" ]] || fail "Expected workflow '$name' to be enabled in clawflows.json"
+    [[ "$result" == "found" ]] || fail "Expected workflow '$name' to be enabled in registry.json"
 }
 
-# assert_workflow_not_enabled checks that a workflow is NOT in clawflows.json
+# assert_workflow_not_enabled checks that a workflow is NOT in registry.json
 assert_workflow_not_enabled() {
     local name="$1"
     local result
@@ -376,7 +370,7 @@ for e in data:
         print('found')
         break
 " 2>/dev/null)"
-    [[ "$result" != "found" ]] || fail "Expected workflow '$name' to NOT be enabled in clawflows.json"
+    [[ "$result" != "found" ]] || fail "Expected workflow '$name' to NOT be enabled in registry.json"
 }
 
 # assert_is_directory checks that a path is a real directory (not symlink)
@@ -408,7 +402,7 @@ copy_fixture() {
     local dest_dir
 
     if [[ "$dest_location" == "community" ]]; then
-        dest_dir="${INSTALLED_DIR}/1/${fixture_name}"
+        dest_dir="${COMMUNITY_DIR}/1/${fixture_name}"
     else
         dest_dir="${CREATED_DIR}/${fixture_name}"
     fi
@@ -486,10 +480,10 @@ EOF
         registry="$registry{\"name\":\"${wf}\",\"schedule\":\"\",\"path\":\"created/${wf}\",\"source\":\"created\",\"created_at\":\"${now}\"}"
     done
     registry="$registry]"
-    printf '%s' "$registry" > "${temp_dir}/clawflows.json"
+    printf '%s' "$registry" > "${temp_dir}/registry.json"
 
     # Create tarball
-    tar -czf "${BACKUP_DIR}/${backup_name}" -C "$temp_dir" created enabled-workflows.txt clawflows.json
+    tar -czf "${BACKUP_DIR}/${backup_name}" -C "$temp_dir" created enabled-workflows.txt registry.json
 
     rm -rf "$temp_dir"
 

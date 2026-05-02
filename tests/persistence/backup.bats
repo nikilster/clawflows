@@ -53,7 +53,7 @@ teardown() {
 
 @test "backup: includes enabled list" {
     create_custom_workflow "custom-a" "🅰️" "Custom A"
-    create_installed_workflow "inst-b" "🅱️" "Installed B"
+    create_community_workflow "inst-b" "🅱️" "Installed B"
     enable_workflow "custom-a"
     enable_workflow "inst-b"
 
@@ -125,7 +125,7 @@ teardown() {
 @test "backup: shows correct counts" {
     create_custom_workflow "custom-1" "1️⃣" "Custom 1"
     create_custom_workflow "custom-2" "2️⃣" "Custom 2"
-    create_installed_workflow "inst-1" "🌍" "Installed 1"
+    create_community_workflow "inst-1" "🌍" "Installed 1"
     enable_workflow "custom-1"
     enable_workflow "inst-1"
 

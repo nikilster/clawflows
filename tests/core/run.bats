@@ -17,7 +17,7 @@ teardown() {
 # ============================================================================
 
 @test "run: runs enabled workflow (fallback mode without openclaw)" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
 
     run_clawflows run test-workflow
@@ -27,8 +27,8 @@ teardown() {
     assert_output --partial "Run test-workflow"
 }
 
-@test "run: auto-enables installed workflow if not enabled" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+@test "run: auto-enables community workflow if not enabled" {
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
     # Don't enable it
 
     run_clawflows run test-workflow
@@ -68,7 +68,7 @@ teardown() {
 # ============================================================================
 
 @test "run: uses openclaw when available" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
     mock_openclaw "success"
 
@@ -80,7 +80,7 @@ teardown() {
 }
 
 @test "run: fallback without openclaw shows instructions" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
     mock_openclaw "missing"
 
@@ -96,11 +96,11 @@ teardown() {
 
 @test "run: with missing WORKFLOW.md fails" {
     # Create directory but not WORKFLOW.md, add to registry manually
-    mkdir -p "${INSTALLED_DIR}/testuser/broken-workflow"
+    mkdir -p "${COMMUNITY_DIR}/testuser/broken-workflow"
     python3 -c "
 import json
 data = json.load(open('${REGISTRY_FILE}'))
-data.append({'name': 'broken-workflow', 'schedule': '', 'path': 'installed/testuser/broken-workflow', 'source': 'installed', 'created_at': '2026-01-01T00:00:00Z'})
+data.append({'name': 'broken-workflow', 'schedule': '', 'path': 'community/testuser/broken-workflow', 'source': 'community', 'created_at': '2026-01-01T00:00:00Z'})
 json.dump(data, open('${REGISTRY_FILE}', 'w'), indent=2)
 "
 
@@ -110,8 +110,8 @@ json.dump(data, open('${REGISTRY_FILE}', 'w'), indent=2)
     assert_output --partial "WORKFLOW.md not found"
 }
 
-@test "run: prefers custom over installed" {
-    create_installed_workflow "shared-name" "🌍" "Installed version"
+@test "run: prefers custom over community" {
+    create_community_workflow "shared-name" "🌍" "Installed version"
     create_custom_workflow "shared-name" "🏠" "Custom version"
     # Neither enabled yet
 
@@ -133,7 +133,7 @@ for e in data:
 }
 
 @test "run: creates run file in system/runs" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
 
     run_clawflows run test-workflow

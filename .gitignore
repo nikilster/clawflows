@@ -1,8 +1,8 @@
 clawflows/created/*
 !clawflows/created/.gitkeep
-clawflows/installed/*
-!clawflows/installed/.gitkeep
-clawflows/clawflows.json
+clawflows/community/*
+!clawflows/community/.gitkeep
+clawflows/registry.json
 system/runs/
 system/runs.jsonl
 .vercel

@@ -83,8 +83,8 @@ EOF
 # ============================================================================
 
 @test "YAML: colon in description value is handled" {
-    mkdir -p "${INSTALLED_DIR}/testuser/colon-desc"
-    cat > "${INSTALLED_DIR}/testuser/colon-desc/WORKFLOW.md" << 'EOF'
+    mkdir -p "${COMMUNITY_DIR}/testuser/colon-desc"
+    cat > "${COMMUNITY_DIR}/testuser/colon-desc/WORKFLOW.md" << 'EOF'
 ---
 name: colon-desc
 emoji: "🔧"
@@ -102,8 +102,8 @@ EOF
 }
 
 @test "YAML: unicode emoji in workflow" {
-    mkdir -p "${INSTALLED_DIR}/testuser/emoji-test"
-    cat > "${INSTALLED_DIR}/testuser/emoji-test/WORKFLOW.md" << 'EOF'
+    mkdir -p "${COMMUNITY_DIR}/testuser/emoji-test"
+    cat > "${COMMUNITY_DIR}/testuser/emoji-test/WORKFLOW.md" << 'EOF'
 ---
 name: emoji-test
 emoji: "🎉🎊✨"

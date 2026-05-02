@@ -16,7 +16,7 @@ teardown() {
 # ============================================================================
 
 @test "share: outputs emoji, name, and description" {
-    create_installed_workflow "send-morning-briefing" "☀️" "Daily morning briefing"
+    create_community_workflow "send-morning-briefing" "☀️" "Daily morning briefing"
 
     run_clawflows share send-morning-briefing
 
@@ -26,7 +26,7 @@ teardown() {
 }
 
 @test "share: includes install command with correct workflow name" {
-    create_installed_workflow "check-weather" "🌤️" "Check the weather"
+    create_community_workflow "check-weather" "🌤️" "Check the weather"
 
     run_clawflows share check-weather
 
@@ -36,7 +36,7 @@ teardown() {
 }
 
 @test "share: includes install URL" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
 
     run_clawflows share test-workflow
 
@@ -68,8 +68,8 @@ teardown() {
     assert_output --partial "My custom workflow"
 }
 
-@test "share: custom takes priority over installed" {
-    create_installed_workflow "test-wf" "🌍" "Installed version"
+@test "share: custom takes priority over community" {
+    create_community_workflow "test-wf" "🌍" "Installed version"
     create_custom_workflow "test-wf" "🏠" "Custom version"
 
     run_clawflows share test-wf
@@ -80,7 +80,7 @@ teardown() {
 }
 
 @test "share: workflow without emoji still works" {
-    create_installed_workflow "no-emoji-wf" "" "No emoji here"
+    create_community_workflow "no-emoji-wf" "" "No emoji here"
 
     run_clawflows share no-emoji-wf
 

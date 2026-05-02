@@ -27,8 +27,8 @@ teardown() {
 }
 
 @test "restore: re-enables workflows from backup registry" {
-    # Create installed workflow that will be re-enabled
-    create_installed_workflow "inst-workflow" "🌍" "Installed workflow"
+    # Create community workflow that will be re-enabled
+    create_community_workflow "inst-workflow" "🌍" "Installed workflow"
 
     # Create backup with that workflow in enabled list
     create_test_backup "test-backup.tar.gz" "inst-workflow"
@@ -107,8 +107,8 @@ teardown() {
 # Edge Cases
 # ============================================================================
 
-@test "restore: workflow not in installed or custom is skipped from legacy enabled list" {
-    # Create a backup with only enabled-workflows.txt (no clawflows.json) for legacy support
+@test "restore: workflow not in community or custom is skipped from legacy enabled list" {
+    # Create a backup with only enabled-workflows.txt (no registry.json) for legacy support
     local tmpdir
     tmpdir=$(mktemp -d)
     mkdir -p "${tmpdir}/created"

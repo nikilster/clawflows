@@ -8,12 +8,12 @@ Note the current time and date.
 
 ## 2. Read Enabled Workflows
 
-Read `clawflows/clawflows/clawflows.json` — it's a JSON array of enabled workflow entries. Each entry has:
+Read `clawflows/clawflows/registry.json` — it's a JSON array of enabled workflow entries. Each entry has:
 - `name`
 - `schedule` (empty string for on-demand)
 - `path` (relative to `clawflows/clawflows/`)
 
-Skip entries where `schedule` is empty — they're on-demand only. The `schedule` field in `clawflows.json` is the source of truth (not the WORKFLOW.md frontmatter).
+Skip entries where `schedule` is empty — they're on-demand only. The `schedule` field in `registry.json` is the source of truth (not the WORKFLOW.md frontmatter).
 
 ## 3. Parse Schedules
 
@@ -74,6 +74,6 @@ If nothing was due, respond with `HEARTBEAT_OK`.
 ## Notes
 
 - This runs every 15 minutes via cron
-- Enabled workflows are listed in `clawflows/clawflows/clawflows.json`
+- Enabled workflows are listed in `clawflows/clawflows/registry.json`
 - Only run workflows with a non-empty `schedule` field
 - Respect the run history — don't double-run

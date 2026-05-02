@@ -16,7 +16,7 @@ teardown() {
 # ============================================================================
 
 @test "validate_name: accepts simple alphanumeric name" {
-    create_installed_workflow "check-email" "📧" "Check email"
+    create_community_workflow "check-email" "📧" "Check email"
 
     run_clawflows enable check-email
 
@@ -24,7 +24,7 @@ teardown() {
 }
 
 @test "validate_name: accepts name with underscores" {
-    create_installed_workflow "my_workflow" "🔧" "Test workflow"
+    create_community_workflow "my_workflow" "🔧" "Test workflow"
 
     run_clawflows enable my_workflow
 
@@ -32,7 +32,7 @@ teardown() {
 }
 
 @test "validate_name: accepts name with dashes and numbers" {
-    create_installed_workflow "my-workflow-123" "🔧" "Test workflow"
+    create_community_workflow "my-workflow-123" "🔧" "Test workflow"
 
     run_clawflows enable my-workflow-123
 

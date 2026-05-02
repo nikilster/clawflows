@@ -16,7 +16,7 @@ teardown() {
 # ============================================================================
 
 @test "disable: disables an enabled workflow" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
 
     run_clawflows disable test-workflow
@@ -27,7 +27,7 @@ teardown() {
 }
 
 @test "disable: non-enabled workflow reports not enabled" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
     # Don't enable it
 
     run_clawflows disable test-workflow
@@ -37,7 +37,7 @@ teardown() {
 }
 
 @test "disable: removes from registry but not source files" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
 
     run_clawflows disable test-workflow
@@ -46,12 +46,12 @@ teardown() {
     # Should not be in registry
     assert_workflow_not_enabled "test-workflow"
     # Source should still exist
-    assert [ -d "${INSTALLED_DIR}/testuser/test-workflow" ]
-    assert [ -f "${INSTALLED_DIR}/testuser/test-workflow/WORKFLOW.md" ]
+    assert [ -d "${COMMUNITY_DIR}/testuser/test-workflow" ]
+    assert [ -f "${COMMUNITY_DIR}/testuser/test-workflow/WORKFLOW.md" ]
 }
 
 @test "disable: calls sync-agent" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
     setup_agents_md
 
@@ -85,7 +85,7 @@ teardown() {
 }
 
 @test "disable: can disable and re-enable" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
 
     run_clawflows disable test-workflow

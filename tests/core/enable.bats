@@ -15,8 +15,8 @@ teardown() {
 # Basic Enable Tests
 # ============================================================================
 
-@test "enable: enables an installed workflow" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+@test "enable: enables a community workflow" {
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
 
     run_clawflows enable test-workflow
 
@@ -26,7 +26,7 @@ teardown() {
 }
 
 @test "enable: shows description and schedule" {
-    create_installed_workflow "test-workflow" "🧪" "A test workflow" "9am"
+    create_community_workflow "test-workflow" "🧪" "A test workflow" "9am"
 
     run_clawflows enable test-workflow
 
@@ -37,7 +37,7 @@ teardown() {
 }
 
 @test "enable: shows on-demand hint for unscheduled workflow" {
-    create_installed_workflow "test-workflow" "🧪" "A test workflow"
+    create_community_workflow "test-workflow" "🧪" "A test workflow"
 
     run_clawflows enable test-workflow
 
@@ -47,14 +47,14 @@ teardown() {
 }
 
 @test "enable: enables a custom workflow (takes priority)" {
-    # Create both installed and custom with same name
-    create_installed_workflow "test-workflow" "🌍" "Installed version"
+    # Create both community and custom with same name
+    create_community_workflow "test-workflow" "🌍" "Installed version"
     create_custom_workflow "test-workflow" "🏠" "Custom version"
 
     run_clawflows enable test-workflow
 
     assert_success
-    # Should use created source, not installed
+    # Should use created source, not community
     local reg_source
     reg_source="$(python3 -c "
 import json
@@ -69,7 +69,7 @@ for e in data:
 }
 
 @test "enable: already-enabled workflow is idempotent" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
 
     run_clawflows enable test-workflow
@@ -86,7 +86,7 @@ for e in data:
 }
 
 @test "enable: adds entry to registry with correct path" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
 
     run_clawflows enable test-workflow
 
@@ -102,11 +102,11 @@ for e in data:
         print(e.get('path', ''))
         break
 ")"
-    assert [ "$reg_path" = "installed/testuser/test-workflow" ]
+    assert [ "$reg_path" = "community/testuser/test-workflow" ]
 }
 
 @test "enable: calls sync-agent" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
     setup_agents_md
 
     run_clawflows enable test-workflow
@@ -128,7 +128,7 @@ for e in data:
 # ============================================================================
 
 @test "enable: workflow with custom already enabled uses created source" {
-    create_installed_workflow "my-workflow" "🌍" "Installed version"
+    create_community_workflow "my-workflow" "🌍" "Installed version"
     create_custom_workflow "my-workflow" "🏠" "Custom version"
 
     run_clawflows enable my-workflow
@@ -148,8 +148,8 @@ for e in data:
 }
 
 @test "enable: multiple workflows can be enabled" {
-    create_installed_workflow "workflow-a" "🅰️" "Workflow A"
-    create_installed_workflow "workflow-b" "🅱️" "Workflow B"
+    create_community_workflow "workflow-a" "🅰️" "Workflow A"
+    create_community_workflow "workflow-b" "🅱️" "Workflow B"
 
     run_clawflows enable workflow-a
     assert_success

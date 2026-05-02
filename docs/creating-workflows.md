@@ -4,7 +4,7 @@ How to build your own ClawFlows workflow.
 
 ## ⚠️ Always Use the CLI
 
-Never modify `clawflows/clawflows.json` directly. Always use CLI commands to manage workflows.
+Never modify `clawflows/registry.json` directly. Always use CLI commands to manage workflows.
 
 | What you want to do | How to do it |
 |---------------------|--------------|

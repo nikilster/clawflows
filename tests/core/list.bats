@@ -16,8 +16,8 @@ teardown() {
 # ============================================================================
 
 @test "list: shows enabled workflows" {
-    create_installed_workflow "workflow-a" "🅰️" "Workflow A"
-    create_installed_workflow "workflow-b" "🅱️" "Workflow B"
+    create_community_workflow "workflow-a" "🅰️" "Workflow A"
+    create_community_workflow "workflow-b" "🅱️" "Workflow B"
     enable_workflow "workflow-a"
 
     run_clawflows list
@@ -28,8 +28,8 @@ teardown() {
 }
 
 @test "list: shows available workflows" {
-    create_installed_workflow "workflow-a" "🅰️" "Workflow A"
-    create_installed_workflow "workflow-b" "🅱️" "Workflow B"
+    create_community_workflow "workflow-a" "🅰️" "Workflow A"
+    create_community_workflow "workflow-b" "🅱️" "Workflow B"
     enable_workflow "workflow-a"
 
     run_clawflows list
@@ -40,8 +40,8 @@ teardown() {
 }
 
 @test "list enabled: only shows enabled workflows" {
-    create_installed_workflow "workflow-a" "🅰️" "Workflow A"
-    create_installed_workflow "workflow-b" "🅱️" "Workflow B"
+    create_community_workflow "workflow-a" "🅰️" "Workflow A"
+    create_community_workflow "workflow-b" "🅱️" "Workflow B"
     enable_workflow "workflow-a"
 
     run_clawflows list enabled
@@ -53,8 +53,8 @@ teardown() {
 }
 
 @test "list available: only shows available workflows" {
-    create_installed_workflow "workflow-a" "🅰️" "Workflow A"
-    create_installed_workflow "workflow-b" "🅱️" "Workflow B"
+    create_community_workflow "workflow-a" "🅰️" "Workflow A"
+    create_community_workflow "workflow-b" "🅱️" "Workflow B"
     enable_workflow "workflow-a"
 
     run_clawflows list available
@@ -66,7 +66,7 @@ teardown() {
 }
 
 @test "list: shows 'no workflows enabled' when none enabled" {
-    create_installed_workflow "workflow-a" "🅰️" "Workflow A"
+    create_community_workflow "workflow-a" "🅰️" "Workflow A"
 
     run_clawflows list enabled
 
@@ -86,7 +86,7 @@ teardown() {
 # ============================================================================
 
 @test "list: shows emoji and description" {
-    create_installed_workflow "test-workflow" "🧪" "A test workflow description"
+    create_community_workflow "test-workflow" "🧪" "A test workflow description"
     enable_workflow "test-workflow"
 
     run_clawflows list
@@ -97,7 +97,7 @@ teardown() {
 }
 
 @test "list: skips .gitkeep files" {
-    create_installed_workflow "real-workflow" "🧪" "Real workflow"
+    create_community_workflow "real-workflow" "🧪" "Real workflow"
     touch "${CREATED_DIR}/.gitkeep"
 
     run_clawflows list
@@ -107,14 +107,14 @@ teardown() {
     refute_output --partial ".gitkeep"
 }
 
-@test "list: custom workflows override installed by name" {
-    create_installed_workflow "shared-name" "🌍" "Installed version"
+@test "list: custom workflows override community by name" {
+    create_community_workflow "shared-name" "🌍" "Installed version"
     create_custom_workflow "shared-name" "🏠" "Custom version"
 
     run_clawflows list
 
     assert_success
-    # Should show custom source, not @testuser (installed)
+    # Should show custom source, not @testuser (community)
     assert_output --partial "shared-name"
     assert_output --partial "created"
     refute_output --partial "@testuser"
@@ -125,9 +125,9 @@ teardown() {
 # ============================================================================
 
 @test "list: counts enabled correctly" {
-    create_installed_workflow "wf-1" "1️⃣" "First"
-    create_installed_workflow "wf-2" "2️⃣" "Second"
-    create_installed_workflow "wf-3" "3️⃣" "Third"
+    create_community_workflow "wf-1" "1️⃣" "First"
+    create_community_workflow "wf-2" "2️⃣" "Second"
+    create_community_workflow "wf-3" "3️⃣" "Third"
     enable_workflow "wf-1"
     enable_workflow "wf-2"
 
@@ -139,8 +139,8 @@ teardown() {
 }
 
 @test "list: all filter shows everything" {
-    create_installed_workflow "wf-enabled" "✅" "Enabled one"
-    create_installed_workflow "wf-available" "📦" "Available one"
+    create_community_workflow "wf-enabled" "✅" "Enabled one"
+    create_community_workflow "wf-available" "📦" "Available one"
     enable_workflow "wf-enabled"
 
     run_clawflows list all
@@ -164,8 +164,8 @@ teardown() {
     assert_output --partial "created"
 }
 
-@test "list: installed workflows show @username source" {
-    create_installed_workflow "their-workflow" "🌍" "Installed workflow" "" "" "someuser"
+@test "list: community workflows show @username source" {
+    create_community_workflow "their-workflow" "🌍" "Installed workflow" "" "" "someuser"
 
     run_clawflows list
 
@@ -185,11 +185,11 @@ teardown() {
     assert_output --partial "my-workflow"
 }
 
-@test "list: mix of custom and installed workflows" {
+@test "list: mix of custom and community workflows" {
     create_custom_workflow "custom-on" "🏠" "Custom enabled"
     create_custom_workflow "custom-off" "🏡" "Custom available"
-    create_installed_workflow "inst-on" "🌍" "Installed enabled"
-    create_installed_workflow "inst-off" "🌎" "Installed available"
+    create_community_workflow "inst-on" "🌍" "Installed enabled"
+    create_community_workflow "inst-off" "🌎" "Installed available"
     enable_workflow "custom-on"
     enable_workflow "inst-on"
 
@@ -200,10 +200,10 @@ teardown() {
     assert_output --partial "Available (2)"
 }
 
-@test "list: filter enabled with custom and installed" {
+@test "list: filter enabled with custom and community" {
     create_custom_workflow "custom-on" "🏠" "Custom enabled"
     create_custom_workflow "custom-off" "🏡" "Custom available"
-    create_installed_workflow "inst-on" "🌍" "Installed enabled"
+    create_community_workflow "inst-on" "🌍" "Installed enabled"
     enable_workflow "custom-on"
     enable_workflow "inst-on"
 
@@ -214,9 +214,9 @@ teardown() {
     refute_output --partial "Available"
 }
 
-@test "list: filter available with custom and installed" {
+@test "list: filter available with custom and community" {
     create_custom_workflow "custom-on" "🏠" "Custom enabled"
-    create_installed_workflow "inst-off" "🌎" "Installed available"
+    create_community_workflow "inst-off" "🌎" "Installed available"
     enable_workflow "custom-on"
 
     run_clawflows list available

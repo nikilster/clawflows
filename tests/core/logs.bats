@@ -36,7 +36,7 @@ teardown() {
 # ============================================================================
 
 @test "logs: shows log content from run file" {
-    create_installed_workflow "test-wf" "🧪" "Test workflow"
+    create_community_workflow "test-wf" "🧪" "Test workflow"
     create_test_run "test-wf" "2026-03-08" "07:00" "Sent briefing: 65°F, 3 meetings"
 
     run_clawflows logs
@@ -47,7 +47,7 @@ teardown() {
 }
 
 @test "logs: empty run file shows no log recorded" {
-    create_installed_workflow "test-wf" "🧪" "Test workflow"
+    create_community_workflow "test-wf" "🧪" "Test workflow"
     create_test_run "test-wf" "2026-03-08" "07:00"
 
     run_clawflows logs
@@ -57,7 +57,7 @@ teardown() {
 }
 
 @test "logs: shows emoji from workflow" {
-    create_installed_workflow "test-wf" "🧪" "Test workflow"
+    create_community_workflow "test-wf" "🧪" "Test workflow"
     create_test_run "test-wf" "2026-03-08" "07:00" "Did stuff"
 
     run_clawflows logs
@@ -140,7 +140,7 @@ teardown() {
 # ============================================================================
 
 @test "run: creates run file in system/runs" {
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
     enable_workflow "test-workflow"
     mock_openclaw "missing"
 

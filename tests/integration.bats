@@ -50,12 +50,12 @@ teardown() {
     assert_output --partial "lifecycle-test"
 }
 
-@test "lifecycle: custom overrides installed by name" {
-    # Create installed workflow
-    create_installed_workflow "shared-workflow" "🌍" "Installed version"
+@test "lifecycle: custom overrides community by name" {
+    # Create community workflow
+    create_community_workflow "shared-workflow" "🌍" "Community version"
     enable_workflow "shared-workflow"
 
-    # Verify installed version is enabled
+    # Verify community version is enabled
     run_clawflows list enabled
     assert_success
     assert_output --partial "shared-workflow"
@@ -65,7 +65,7 @@ teardown() {
     assert_success
     assert_output --partial "copied to created"
 
-    # Custom should now shadow installed
+    # Custom should now shadow community
     run_clawflows list
     assert_success
     assert_output --partial "shared-workflow"
@@ -101,9 +101,9 @@ teardown() {
 }
 
 @test "lifecycle: multiple workflows enabled" {
-    # Create installed workflows
-    create_installed_workflow "workflow-1" "1️⃣" "First workflow"
-    create_installed_workflow "workflow-2" "2️⃣" "Second workflow"
+    # Create community workflows
+    create_community_workflow "workflow-1" "1️⃣" "First workflow"
+    create_community_workflow "workflow-2" "2️⃣" "Second workflow"
     create_custom_workflow "workflow-3" "3️⃣" "Third workflow"
 
     # Enable all
@@ -136,7 +136,7 @@ teardown() {
 # ============================================================================
 
 @test "recovery: enable after disable" {
-    create_installed_workflow "toggle-workflow" "🔄" "Toggle test"
+    create_community_workflow "toggle-workflow" "🔄" "Toggle test"
 
     run_clawflows enable toggle-workflow
     assert_success

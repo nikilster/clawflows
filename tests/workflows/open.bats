@@ -25,8 +25,8 @@ teardown() {
     assert_output --partial "Opening"
 }
 
-@test "open: opens installed workflow file" {
-    create_installed_workflow "test-workflow" "🧪" "Installed workflow"
+@test "open: opens community workflow file" {
+    create_community_workflow "test-workflow" "🧪" "Installed workflow"
 
     run_clawflows open test-workflow
 
@@ -62,8 +62,8 @@ teardown() {
     assert_output --partial "Opening"
 }
 
-@test "open: prefers custom over installed" {
-    create_installed_workflow "shared-name" "🌍" "Installed version"
+@test "open: prefers custom over community" {
+    create_community_workflow "shared-name" "🌍" "Installed version"
     create_custom_workflow "shared-name" "🏠" "Custom version"
 
     run_clawflows open shared-name

@@ -23,7 +23,7 @@ teardown() {
 
     # The mock sets OPENCLAW_CMD="" so _find_openclaw returns nothing
     # This means run falls back to showing instructions
-    create_installed_workflow "test-workflow" "🧪" "Test"
+    create_community_workflow "test-workflow" "🧪" "Test"
     enable_workflow "test-workflow"
 
     run_clawflows run test-workflow
@@ -34,7 +34,7 @@ teardown() {
 
 @test "find_openclaw: finds openclaw when OPENCLAW_CMD is set" {
     mock_openclaw "success"
-    create_installed_workflow "test-workflow" "🧪" "Test"
+    create_community_workflow "test-workflow" "🧪" "Test"
     enable_workflow "test-workflow"
 
     run_clawflows run test-workflow
@@ -50,7 +50,7 @@ teardown() {
 
 @test "enable: sets up scheduler cron when enabling a scheduled workflow" {
     mock_openclaw "success"
-    create_installed_workflow "morning-brief" "☀️" "Morning briefing" "7am"
+    create_community_workflow "morning-brief" "☀️" "Morning briefing" "7am"
 
     run_clawflows enable morning-brief
 
@@ -67,7 +67,7 @@ teardown() {
 
 @test "enable: does not set up scheduler for on-demand workflow" {
     mock_openclaw "success"
-    create_installed_workflow "test-workflow" "🧪" "Test workflow"
+    create_community_workflow "test-workflow" "🧪" "Test workflow"
     # No schedule field
 
     run_clawflows enable test-workflow
@@ -85,7 +85,7 @@ teardown() {
 
 @test "enable: skips scheduler setup when cron already exists" {
     mock_openclaw "cron-exists"
-    create_installed_workflow "morning-brief" "☀️" "Morning briefing" "7am"
+    create_community_workflow "morning-brief" "☀️" "Morning briefing" "7am"
 
     run_clawflows enable morning-brief
 
@@ -101,7 +101,7 @@ teardown() {
 
 @test "enable: skips scheduler when openclaw is missing" {
     mock_openclaw "missing"
-    create_installed_workflow "morning-brief" "☀️" "Morning briefing" "7am"
+    create_community_workflow "morning-brief" "☀️" "Morning briefing" "7am"
 
     run_clawflows enable morning-brief
 
@@ -115,8 +115,8 @@ teardown() {
 
 @test "enable: scheduler setup is idempotent across multiple scheduled workflows" {
     mock_openclaw "success"
-    create_installed_workflow "morning-brief" "☀️" "Morning briefing" "7am"
-    create_installed_workflow "evening-check" "🌙" "Evening check" "5pm"
+    create_community_workflow "morning-brief" "☀️" "Morning briefing" "7am"
+    create_community_workflow "evening-check" "🌙" "Evening check" "5pm"
 
     run_clawflows enable morning-brief
     assert_success
