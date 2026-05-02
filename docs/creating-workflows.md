@@ -206,6 +206,8 @@ visibility: private
 
 If you omit the `visibility` field, it defaults to `public`.
 
+**Always default to `public`.** Do not change visibility on the user's behalf — only set a non-public visibility if the user explicitly asks for it.
+
 ### Examples
 
 ```yaml

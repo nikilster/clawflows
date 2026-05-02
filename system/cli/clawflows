@@ -1006,6 +1006,7 @@ _build_block() {
   lines+=("- \`$CLAWFLOWS_DIR/system/AGENT.md\` — agent reference guide (install, sync, sharing)")
   lines+=("- \`$CLAWFLOWS_DIR/docs/creating-workflows.md\` — read this BEFORE creating a workflow")
   lines+=("- **Never edit \`clawflows.json\` directly** — always use CLI commands")
+  lines+=("- **Visibility defaults to public** — do not change visibility on the user's behalf. Only set a non-public visibility if the user explicitly asks for it.")
   lines+=("")
   lines+=("If the user asks for something that sounds like a workflow but no match fits, run \`clawflows list\` for a broader search, then offer to create one.")
   lines+=("")
