@@ -153,7 +153,7 @@ cmd_help() {
   printf "  ${CMD}edit ${M}<name>${R}          Copy an installed workflow to created/ for editing\n"
   printf "  ${CMD}open ${M}<name>${R}          Open a workflow in your editor\n"
   printf "  ${CMD}validate ${M}<name>${R}      Check a workflow has required fields\n"
-  printf "  ${CMD}delete ${M}<name>${R}        Delete a workflow locally and from the server\n"
+  printf "  ${CMD}delete ${M}<name> [--yes]${R}  Delete a workflow locally and from the server\n"
 
   printf "\n${H}📤 Sharing${R}\n"
   printf "  ${CMD}share ${M}<name>${R}         Show shareable text for a workflow\n"
@@ -797,7 +797,14 @@ cmd_edit() {
 }
 
 cmd_delete() {
-  local name="$1"
+  local name=""
+  local force=false
+  for arg in "$@"; do
+    case "$arg" in
+      --yes|-y) force=true ;;
+      *) name="$arg" ;;
+    esac
+  done
   validate_workflow_name "$name"
 
   local workflow_dir="$CREATED_DIR/$name"
@@ -805,13 +812,15 @@ cmd_delete() {
     die "workflow '$name' not found in created/"
   fi
 
-  # Confirm
-  echo "This will permanently delete '$name' locally and from the server."
-  printf "Are you sure? (y/N) "
-  read -r confirm
-  if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
-    echo "Cancelled."
-    return
+  # Confirm (skip with --yes for non-interactive use)
+  if [ "$force" = false ]; then
+    echo "This will permanently delete '$name' locally and from the server."
+    printf "Are you sure? (y/N) "
+    read -r confirm
+    if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
+      echo "Cancelled."
+      return
+    fi
   fi
 
   # Delete from server if logged in
@@ -2525,7 +2534,7 @@ case "$1" in
   logs)      cmd_logs "${2:-}" "${3:-}" ;;
   enable)    [ $# -ge 2 ] || die "usage: clawflows enable <name>"; cmd_enable "$2" ;;
   disable)   [ $# -ge 2 ] || die "usage: clawflows disable <name>"; cmd_disable "$2" ;;
-  delete)    [ $# -ge 2 ] || die "usage: clawflows delete <name>"; cmd_delete "$2" ;;
+  delete)    [ $# -ge 2 ] || die "usage: clawflows delete <name> [--yes]"; shift; cmd_delete "$@" ;;
   edit)      [ $# -ge 2 ] || die "usage: clawflows edit <name>"; cmd_edit "$2" ;;
   open)      [ $# -ge 2 ] || die "usage: clawflows open <name>"; cmd_open "$2" ;;
   validate)  [ $# -ge 2 ] || die "usage: clawflows validate <name>"; cmd_validate "$2" ;;
