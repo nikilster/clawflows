@@ -1,0 +1,2 @@
+Tried to run nutrition sync, but this scheduler context lacks the required browser/Gmail tooling for MyFitnessPal export retrieval.
+Skipped this cycle without changing any data; safe to retry on the next run with full tooling.

@@ -1,0 +1,8 @@
+[
+  {
+    "name": "telegram-ping-test",
+    "schedule": "every 5 minutes",
+    "path": "created/telegram-ping-test",
+    "source": "created"
+  }
+]

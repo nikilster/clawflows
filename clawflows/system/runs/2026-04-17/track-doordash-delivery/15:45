@@ -1,0 +1,3 @@
+Could not check DoorDash status in this scheduler run.
+Workflow requires browser automation, which was not available in this context.
+No delivery status update was sent.

@@ -1,0 +1,2 @@
+Checked screen-time status via the health dashboard.
+Status returned active=false, so no sleep nudge was needed.

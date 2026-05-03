@@ -1,0 +1,3 @@
+Attempted DoorDash status check for scheduled 12:30 slot.
+Direct web fetch hit unauthenticated 403, so active order status could not be verified here.
+No delivery notification sent and workflow was not disabled.

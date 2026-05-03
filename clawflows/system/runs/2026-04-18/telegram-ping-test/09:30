@@ -1,0 +1,3 @@
+Telegram ping test executed for the 09:30 slot.
+Intended outbound line: "PING TEST: cron -> Telegram delivery worked."
+Per scheduler wrapper, noted for automatic delivery instead of sending directly.

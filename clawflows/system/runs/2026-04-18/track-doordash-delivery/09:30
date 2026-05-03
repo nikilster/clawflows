@@ -1,0 +1,3 @@
+Track-DoorDash workflow was due at 09:30 but could not fully execute in this scheduler context.
+The workflow requires browser access to inspect DoorDash orders, which was not available here.
+No delivery status change was confirmed and the workflow was not disabled.
