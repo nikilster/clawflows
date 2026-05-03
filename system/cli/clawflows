@@ -153,6 +153,7 @@ cmd_help() {
   printf "  ${CMD}edit ${M}<name>${R}          Copy an installed workflow to created/ for editing\n"
   printf "  ${CMD}open ${M}<name>${R}          Open a workflow in your editor\n"
   printf "  ${CMD}validate ${M}<name>${R}      Check a workflow has required fields\n"
+  printf "  ${CMD}delete ${M}<name>${R}        Delete a workflow locally and from the server\n"
 
   printf "\n${H}📤 Sharing${R}\n"
   printf "  ${CMD}share ${M}<name>${R}         Show shareable text for a workflow\n"
@@ -784,10 +785,64 @@ cmd_edit() {
 
     echo ""
     echo "  Edit: $CREATED_DIR/$name/WORKFLOW.md"
+
+    # Auto-sync to web if logged in
+    if [ -f "$HUB_TOKEN_FILE" ]; then
+      cmd_web_sync
+    fi
     return
   fi
 
   die "workflow '$name' not found"
+}
+
+cmd_delete() {
+  local name="$1"
+  validate_workflow_name "$name"
+
+  local workflow_dir="$CREATED_DIR/$name"
+  if [ ! -d "$workflow_dir" ]; then
+    die "workflow '$name' not found in created/"
+  fi
+
+  # Confirm
+  echo "This will permanently delete '$name' locally and from the server."
+  printf "Are you sure? (y/N) "
+  read -r confirm
+  if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
+    echo "Cancelled."
+    return
+  fi
+
+  # Delete from server if logged in
+  if [ -f "$HUB_TOKEN_FILE" ]; then
+    local token
+    token="$(cat "$HUB_TOKEN_FILE")"
+    local response
+    response="$(curl -sf -X POST "$HUB_URL/api/workflows/delete" \
+      -H "Authorization: Bearer $token" \
+      -H "Content-Type: application/json" \
+      -d "{\"slug\":\"$name\"}")" 2>/dev/null
+    if [ $? -eq 0 ]; then
+      echo "  Deleted from server"
+    else
+      echo "  Warning: could not delete from server (may not exist there)"
+    fi
+  fi
+
+  # Remove local directory
+  rm -rf "$workflow_dir"
+  echo "  Deleted locally: $workflow_dir"
+
+  # Remove from registry
+  _json_remove "$name"
+  echo "  Removed from registry"
+
+  # Rebuild AGENTS.md
+  cmd_sync
+
+  echo ""
+  echo "✓ Deleted '$name'"
 }
 
 cmd_open() {
@@ -821,6 +876,11 @@ cmd_open() {
 
   echo "Opening $wf_file..."
   $editor "$wf_file"
+
+  # Auto-sync to web if logged in (content may have changed)
+  if [ -f "$HUB_TOKEN_FILE" ]; then
+    cmd_web_sync
+  fi
 }
 
 cmd_update() {
@@ -2465,6 +2525,7 @@ case "$1" in
   logs)      cmd_logs "${2:-}" "${3:-}" ;;
   enable)    [ $# -ge 2 ] || die "usage: clawflows enable <name>"; cmd_enable "$2" ;;
   disable)   [ $# -ge 2 ] || die "usage: clawflows disable <name>"; cmd_disable "$2" ;;
+  delete)    [ $# -ge 2 ] || die "usage: clawflows delete <name>"; cmd_delete "$2" ;;
   edit)      [ $# -ge 2 ] || die "usage: clawflows edit <name>"; cmd_edit "$2" ;;
   open)      [ $# -ge 2 ] || die "usage: clawflows open <name>"; cmd_open "$2" ;;
   validate)  [ $# -ge 2 ] || die "usage: clawflows validate <name>"; cmd_validate "$2" ;;
