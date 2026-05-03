@@ -1,0 +1,221 @@
+[
+  {
+    "name": "prep-external-meeting",
+    "schedule": "every hour",
+    "path": "created/prep-external-meeting",
+    "source": "created"
+  },
+  {
+    "name": "send-morning-laughs-club",
+    "schedule": "8am",
+    "path": "created/send-morning-laughs-club",
+    "source": "created"
+  },
+  {
+    "name": "sync-nutrition",
+    "schedule": "12am, 3am, 6am, 9am, 12pm, 3pm, 6pm, 9pm",
+    "path": "created/sync-nutrition",
+    "source": "created"
+  },
+  {
+    "name": "remind-to-eat",
+    "schedule": "9am, 12pm, 3pm, 6pm",
+    "path": "created/remind-to-eat",
+    "source": "created"
+  },
+  {
+    "name": "log-daily-summary",
+    "schedule": "12am",
+    "path": "created/log-daily-summary",
+    "source": "created"
+  },
+  {
+    "name": "important-email-check",
+    "schedule": "9am",
+    "path": "created/important-email-check",
+    "source": "created"
+  },
+  {
+    "name": "update-openclaw",
+    "schedule": "3am",
+    "path": "created/update-openclaw",
+    "source": "created"
+  },
+  {
+    "name": "learn-writing-style",
+    "schedule": "",
+    "path": "created/learn-writing-style",
+    "source": "created"
+  },
+  {
+    "name": "log-food-mfp",
+    "schedule": "",
+    "path": "created/log-food-mfp",
+    "source": "created"
+  },
+  {
+    "name": "process-email",
+    "schedule": "10am, 4pm",
+    "path": "created/process-email",
+    "source": "created"
+  },
+  {
+    "name": "life-coach-weekly-review",
+    "schedule": "12pm",
+    "path": "created/life-coach-weekly-review",
+    "source": "created"
+  },
+  {
+    "name": "log-hevy-workout",
+    "schedule": "",
+    "path": "created/log-hevy-workout",
+    "source": "created"
+  },
+  {
+    "name": "query-health-dashboard",
+    "schedule": "",
+    "path": "created/query-health-dashboard",
+    "source": "created"
+  },
+  {
+    "name": "backup-openclaw",
+    "schedule": "12am",
+    "path": "created/backup-openclaw",
+    "source": "created"
+  },
+  {
+    "name": "life-coach-daily-review",
+    "schedule": "8pm",
+    "path": "created/life-coach-daily-review",
+    "source": "created"
+  },
+  {
+    "name": "book-flight",
+    "schedule": "",
+    "path": "created/book-flight",
+    "source": "created"
+  },
+  {
+    "name": "mom-check-in",
+    "schedule": "7am, 8am, 9am, 10am, 11am, 12pm, 1pm, 2pm, 3pm, 4pm, 5pm, 6pm, 7pm, 8pm, 9pm, 10pm, 11pm",
+    "path": "created/mom-check-in",
+    "source": "created"
+  },
+  {
+    "name": "life-coach-monthly-review",
+    "schedule": "5pm",
+    "path": "created/life-coach-monthly-review",
+    "source": "created"
+  },
+  {
+    "name": "track-time",
+    "schedule": "",
+    "path": "created/track-time",
+    "source": "created"
+  },
+  {
+    "name": "remind-life-tracking",
+    "schedule": "8:30pm",
+    "path": "created/remind-life-tracking",
+    "source": "created"
+  },
+  {
+    "name": "negotiate-doordash-support",
+    "schedule": "",
+    "path": "created/negotiate-doordash-support",
+    "source": "created"
+  },
+  {
+    "name": "unsubscribe-mailing-lists",
+    "schedule": "",
+    "path": "created/unsubscribe-mailing-lists",
+    "source": "created"
+  },
+  {
+    "name": "life-coach-nudge",
+    "schedule": "every 15 minutes",
+    "path": "created/life-coach-nudge",
+    "source": "created"
+  },
+  {
+    "name": "build-exponential-self-improvement",
+    "schedule": "2am",
+    "path": "created/build-exponential-self-improvement",
+    "source": "created"
+  },
+  {
+    "name": "build-weekly-code-summary",
+    "schedule": "",
+    "path": "created/build-weekly-code-summary",
+    "source": "created"
+  },
+  {
+    "name": "call-uber",
+    "schedule": "",
+    "path": "created/call-uber",
+    "source": "created"
+  },
+  {
+    "name": "nudge-sleep",
+    "schedule": "every 15 minutes from 9pm to 7:30am",
+    "path": "created/nudge-sleep",
+    "source": "created"
+  },
+  {
+    "name": "log-daily-check-in",
+    "schedule": "",
+    "path": "created/log-daily-check-in",
+    "source": "created"
+  },
+  {
+    "name": "send-morning-briefing",
+    "schedule": "6am",
+    "path": "created/send-morning-briefing",
+    "source": "created"
+  },
+  {
+    "name": "update-timezone",
+    "schedule": "6am",
+    "path": "created/update-timezone",
+    "source": "created"
+  },
+  {
+    "name": "respond-x",
+    "schedule": "every 15 minutes",
+    "path": "created/respond-x",
+    "source": "created"
+  },
+  {
+    "name": "activate-nyc-night-mode",
+    "schedule": "8pm",
+    "path": "created/activate-nyc-night-mode",
+    "source": "created"
+  },
+  {
+    "name": "early-meeting-alert",
+    "schedule": "8pm",
+    "path": "created/early-meeting-alert",
+    "source": "created"
+  },
+  {
+    "name": "notify-openclaw-updates",
+    "schedule": "9am",
+    "path": "created/notify-openclaw-updates",
+    "source": "created"
+  },
+  {
+    "name": "activate-nyc-sleep-mode",
+    "schedule": "9:15pm",
+    "path": "created/activate-nyc-sleep-mode",
+    "source": "created"
+  },
+  {
+    "name": "sync-clawflows-web",
+    "schedule": "9am, 9pm",
+    "path": "community/1/sync-clawflows-web",
+    "source": "community",
+    "agent_id": 1,
+    "username": "clawflowsagent",
+    "version": 1
+  }
+]
