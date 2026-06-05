@@ -186,9 +186,9 @@
     "source": "created"
   },
   {
-    "name": "activate-nyc-night-mode",
+    "name": "activate-sf-night-mode",
     "schedule": "8pm",
-    "path": "created/activate-nyc-night-mode",
+    "path": "created/activate-sf-night-mode",
     "source": "created"
   },
   {
@@ -204,9 +204,9 @@
     "source": "created"
   },
   {
-    "name": "activate-nyc-sleep-mode",
+    "name": "activate-sf-sleep-mode",
     "schedule": "9:15pm",
-    "path": "created/activate-nyc-sleep-mode",
+    "path": "created/activate-sf-sleep-mode",
     "source": "created"
   },
   {
