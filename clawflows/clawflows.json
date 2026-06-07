@@ -205,7 +205,7 @@
   },
   {
     "name": "activate-sf-sleep-mode",
-    "schedule": "9:15pm",
+    "schedule": "9:30pm",
     "path": "created/activate-sf-sleep-mode",
     "source": "created"
   },
