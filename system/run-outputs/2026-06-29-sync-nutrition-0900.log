@@ -1,0 +1,62 @@
+Running sync-nutrition — check your chat with your agent for results.
+
+│
+◇  Doctor warnings ───────────────────────────────────────────────────────╮
+│                                                                         │
+│  - Left migrated plugin install index in place because archive already  │
+│    exists: /Users/dave/.openclaw/plugins/installs.json.migrated         │
+│                                                                         │
+├─────────────────────────────────────────────────────────────────────────╯
+│
+◇  Config warnings ───────────────────────────────────────────────────────╮
+│                                                                         │
+│  - plugins.entries.voice-call: plugin not installed: voice-call —       │
+│    install the official external plugin with: openclaw plugins install  │
+│    @openclaw/voice-call                                                 │
+│                                                                         │
+├─────────────────────────────────────────────────────────────────────────╯
+[state-migrations] Auto-migrated legacy state:
+- Migrated 2 task registry sidecar rows → shared SQLite state
+- Migrated 2 task delivery sidecar rows → shared SQLite state
+[state-migrations] Legacy state migration warnings:
+- Left plugin-state sidecar in place because 1 row already existed in shared state: telegram/telegram.bot-info-cache/default
+- Left migrated plugin install index in place because archive already exists: /Users/dave/.openclaw/plugins/installs.json.migrated
+- Left migrated task registry sidecar in place because archive already exists: /Users/dave/.openclaw/tasks/runs.sqlite.migrated
+- Left migrated task flow sidecar in place because archive already exists: /Users/dave/.openclaw/flows/registry.sqlite.migrated
+- Left migrated Telegram update offset source in place because /Users/dave/.openclaw/telegram/update-offset-default.json.migrated already exists
+- Left migrated Telegram sent-message cache source in place because /Users/dave/.openclaw/agents/main/sessions/sessions.json.telegram-sent-messages.json.migrated already exists
+- Left migrated Telegram message dispatch dedupe source in place because /Users/dave/.openclaw/agents/main/sessions/sessions.json.telegram-message-dispatch-default.json.migrated already exists
+│
+◇  Doctor changes ────────────────────────────────────────────────╮
+│                                                                 │
+│  - Migrated 2 task registry sidecar rows → shared SQLite state  │
+│  - Migrated 2 task delivery sidecar rows → shared SQLite state  │
+│                                                                 │
+├─────────────────────────────────────────────────────────────────╯
+│
+◇  Doctor warnings ────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                              │
+│  - Left plugin-state sidecar in place because 1 row already existed in                                       │
+│    shared state: telegram/telegram.bot-info-cache/default                                                    │
+│  - Left migrated plugin install index in place because archive already                                       │
+│    exists: /Users/dave/.openclaw/plugins/installs.json.migrated                                              │
+│  - Left migrated task registry sidecar in place because archive already                                      │
+│    exists: /Users/dave/.openclaw/tasks/runs.sqlite.migrated                                                  │
+│  - Left migrated task flow sidecar in place because archive already                                          │
+│    exists: /Users/dave/.openclaw/flows/registry.sqlite.migrated                                              │
+│  - Left migrated Telegram update offset source in place because                                              │
+│    /Users/dave/.openclaw/telegram/update-offset-default.json.migrated                                        │
+│    already exists                                                                                            │
+│  - Left migrated Telegram sent-message cache source in place because                                         │
+│    /Users/dave/.openclaw/agents/main/sessions/sessions.json.telegram-sent-messages.json.migrated             │
+│    already exists                                                                                            │
+│  - Left migrated Telegram message dispatch dedupe source in place                                            │
+│    because                                                                                                   │
+│    /Users/dave/.openclaw/agents/main/sessions/sessions.json.telegram-message-dispatch-default.json.migrated  │
+│    already exists                                                                                            │
+│                                                                                                              │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+[plugins] plugins.allow is empty; discovered non-bundled plugins may auto-load: brave (/Users/dave/.openclaw/npm/projects/openclaw-brave-plugin-11fe9e3aa3/node_modules/@openclaw/brave-plugin/dist/index.js), codex (/Users/dave/.openclaw/npm/projects/openclaw-codex-8902d781d4/node_modules/@openclaw/codex/dist/index.js), groq (/Users/dave/.openclaw/npm/projects/openclaw-groq-provider-d726e35179/node_modules/@openclaw/groq-provider/dist/index.js). Set plugins.allow to explicit trusted ids.
+Ran `sync-nutrition` for the 9:00 PT slot.
+
+No duplicate sync performed. The 9:00 run had already uploaded the MyFitnessPal export to Health Visualization with `daysImported=2` and `mealsImported=6`, so I did not trigger another export or re-upload. Appended and verified the required `runs.jsonl` entry.
